@@ -16,16 +16,19 @@ Renders a menu for the given menu ID.
 
 {{- with index site.Menus $menuID }}
   <nav>
+    <h2>Makes</h2>
     <ul>
       {{ range $makeSection.Pages }}
         <li><a href="{{ .Permalink }}">{{ .Title }}</a></li>
       {{ end }}
     </ul>
+    <h2>Case studies</h2>
     <ul>
       {{ range $caseSection.Pages }}
         <li><a href="{{ .Permalink }}">{{ .Title }}</a></li>
       {{ end }}
     </ul>
+    <h2>Equipment</h2>
     <ul>
       {{ range $equipmentSection.Pages }}
         <li><a href="{{ .Permalink }}">{{ .Title }}</a></li>

@@ -16,25 +16,31 @@ html, body {
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);
-  font-family: "Helvetica", "Arial", sans-serif;
+  font-family: Bahnschrift, 'DIN Alternate', 'Franklin Gothic Medium', 'Nimbus Sans Narrow', sans-serif-condensed, sans-serif;
+  font-weight: normal;
   line-height: 1.5;
+}
+
+nav ul  {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  margin-left: 1rem;
 }
 
 
 h1 {
-  font-size: 2.5em
+  font-size: 2rem
 }
 
 h2 {
-  font-size: 2em;
+  margin-top: 3rem;
+  margin-bottom: 0.3rem;
+  font-size: 1rem;
 }
 
 h3 {
-  font-size: 1.5em
-}
-
-h2, h3 {
-  margin-top: 1.5em;
+  font-size: 0.5rem
 }
 
 h1, h2, strong {
