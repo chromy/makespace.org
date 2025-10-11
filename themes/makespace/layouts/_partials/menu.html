@@ -10,42 +10,27 @@ Renders a menu for the given menu ID.
 {{- $page := .page }}
 {{- $menuID := .menuID }}
 
+{{- $makeSection := site.GetPage "section" "make" }}
+{{- $caseSection := site.GetPage "section" "case" }}
+{{- $equipmentSection := site.GetPage "section" "equipment" }}
+
 {{- with index site.Menus $menuID }}
   <nav>
     <ul>
-      {{- partial "inline/menu/walk.html" (dict "page" $page "menuEntries" .) }}
+      {{ range $makeSection.Pages }}
+        <li><a href="{{ .Permalink }}">{{ .Title }}</a></li>
+      {{ end }}
+    </ul>
+    <ul>
+      {{ range $caseSection.Pages }}
+        <li><a href="{{ .Permalink }}">{{ .Title }}</a></li>
+      {{ end }}
+    </ul>
+    <ul>
+      {{ range $equipmentSection.Pages }}
+        <li><a href="{{ .Permalink }}">{{ .Title }}</a></li>
+      {{ end }}
     </ul>
   </nav>
 {{- end }}
 
-{{- define "_partials/inline/menu/walk.html" }}
-  {{- $page := .page }}
-  {{- range .menuEntries }}
-    {{- $attrs := dict "href" .URL }}
-    {{- if $page.IsMenuCurrent .Menu . }}
-      {{- $attrs = merge $attrs (dict "class" "active" "aria-current" "page") }}
-    {{- else if $page.HasMenuCurrent .Menu .}}
-      {{- $attrs = merge $attrs (dict "class" "ancestor" "aria-current" "true") }}
-    {{- end }}
-    {{- $name := .Name }}
-    {{- with .Identifier }}
-      {{- with T . }}
-        {{- $name = . }}
-      {{- end }}
-    {{- end }}
-    <li>
-      <a
-        {{- range $k, $v := $attrs }}
-          {{- with $v }}
-            {{- printf " %s=%q" $k $v | safeHTMLAttr }}
-          {{- end }}
-        {{- end -}}
-      >{{ $name }}</a>
-      {{- with .Children }}
-        <ul>
-          {{- partial "inline/menu/walk.html" (dict "page" $page "menuEntries" .) }}
-        </ul>
-      {{- end }}
-    </li>
-  {{- end }}
-{{- end }}
