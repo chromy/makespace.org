@@ -63,6 +63,11 @@ a {
   color: var(--color-accent);
 }
 
+a[rel~="external"]::after {
+  content: " [ext]";
+  font-size: smaller;
+}
+
 blockquote, q {
   border-left: solid 4px #bbb;
   font-style: italic;

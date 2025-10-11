@@ -1,0 +1,6 @@
+{{ $name := .Get "name" }}
+{{ with resources.Get $name }}
+{{ $new := .Resize "100x" }}
+<img src="{{ $new.RelPermalink }}" width="{{ $new.Width }}" height="{{ $new.Height }}"></img>
+{{ end }}
+hello!
