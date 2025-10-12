@@ -18,7 +18,7 @@ Renders a menu for the given menu ID.
 {{- with index site.Menus $menuID }}
   <nav>
     <details open>
-      <summary>Makes</summary>
+      <summary><a href="{{ $makesSection.Permalink }}">Makes</a></summary>
       <ul>
         {{ range $makesSection.Pages }}
           <li><a href="{{ .Permalink }}"{{ if eq $page.Permalink .Permalink }} class="is-current-anchor"{{ end }}>{{ .Title }}</a></li>
@@ -26,7 +26,7 @@ Renders a menu for the given menu ID.
       </ul>
     </details>
     <details open>
-      <summary>Case studies</summary>
+      <summary><a href="{{ $studiesSection.Permalink }}">Case studies</a></summary>
       <ul>
         {{ range $studiesSection.Pages }}
           <li><a href="{{ .Permalink }}"{{ if eq $page.Permalink .Permalink }} class="is-current-anchor"{{ end }}>{{ .Title }}</a></li>
@@ -34,7 +34,7 @@ Renders a menu for the given menu ID.
       </ul>
     </details>
     <details open>
-      <summary>Equipment</summary>
+      <summary><a href="{{ $equipmentSection.Permalink }}">Equipment</a></summary>
       <ul>
         {{ range $equipmentSection.Pages }}
           <li><a href="{{ .Permalink }}"{{ if eq $page.Permalink .Permalink }} class="is-current-anchor"{{ end }}>{{ .Title }}</a></li>
@@ -42,7 +42,7 @@ Renders a menu for the given menu ID.
       </ul>
     </details>
     <details open>
-      <summary>More</summary>
+      <summary><a href="{{ $moreSection.Permalink }}">More</a></summary>
       <ul>
         <li><a rel="external" href="https://app.makespace.org/">Members' app</a></li>
         <li><a rel="external" href="https://docs.google.com/forms/d/e/1FAIpQLScz7JjZSpS_MpE5bII2uM5WkyXrmbD4KAeH4N_RpPIu-HOudQ/viewform?usp=pp_url">Raise a trouble ticket</a></li>
