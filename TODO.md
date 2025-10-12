@@ -1,21 +1,24 @@
 # TODO
-- Photos
-    - Image quilts of a bunch of pages
-    - Attach images to pages
-    - Where to store images
+- Web share
+- PR from members app
 
-- Github build
-- Deploy
-- More example content
 - Search
 
 - Rename more to ? (help?)
 - Footer info
 - Mark external links more pretty
 - lint / formatter
-- Menu expand/hide
 - More mobile styling
 
 # TODONE
+- More example content
+- Deploy
+- Github build
 - Mark external links somehow
+- Photos
+    - Image quilts of a bunch of pages
+    - Attach images to pages
+    - Where to store images
+- Menu expand/hide
+
 
