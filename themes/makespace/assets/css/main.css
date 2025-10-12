@@ -158,6 +158,24 @@ footer::before {
     repeating-linear-gradient(var(--color-accent), var(--color-foreground) );
 }
 
+.quilt {
+  display: grid
+;
+  grid-auto-rows: auto;
+  grid-template-columns: repeat(6, auto);
+  justify-content: flex-start;
+  gap: 0;
+}
+.quilt > * {
+  display: block;
+}
+
+.quilt img {
+  max-width: 100%;
+  height: 100%;
+}
+
+
 @media (min-width: 768px) {
   body {
       display: grid;
