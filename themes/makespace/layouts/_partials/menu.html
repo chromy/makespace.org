@@ -1,7 +1,7 @@
 {{- /*
 Renders a menu for the given menu ID.
 
-@context {page} page The current page.
+@context {page} page The is-current-anchor page.
 @context {string} menuID The menu ID.
 
 @example: {{ partial "menu.html" (dict "menuID" "main" "page" .) }}
@@ -10,8 +10,8 @@ Renders a menu for the given menu ID.
 {{- $page := .page }}
 {{- $menuID := .menuID }}
 
-{{- $makeSection := site.GetPage "section" "make" }}
-{{- $caseSection := site.GetPage "section" "case" }}
+{{- $makesSection := site.GetPage "section" "makes" }}
+{{- $studiesSection := site.GetPage "section" "studies" }}
 {{- $equipmentSection := site.GetPage "section" "equipment" }}
 {{- $moreSection := site.GetPage "section" "more" }}
 
@@ -20,16 +20,16 @@ Renders a menu for the given menu ID.
     <details open>
       <summary>Makes</summary>
       <ul>
-        {{ range $makeSection.Pages }}
-          <li><a href="{{ .Permalink }}">{{ .Title }}</a></li>
+        {{ range $makesSection.Pages }}
+          <li><a href="{{ .Permalink }}"{{ if eq $page.Permalink .Permalink }} class="is-current-anchor"{{ end }}>{{ .Title }}</a></li>
         {{ end }}
       </ul>
     </details>
     <details open>
       <summary>Case studies</summary>
       <ul>
-        {{ range $caseSection.Pages }}
-          <li><a href="{{ .Permalink }}">{{ .Title }}</a></li>
+        {{ range $studiesSection.Pages }}
+          <li><a href="{{ .Permalink }}"{{ if eq $page.Permalink .Permalink }} class="is-current-anchor"{{ end }}>{{ .Title }}</a></li>
         {{ end }}
       </ul>
     </details>
@@ -37,7 +37,7 @@ Renders a menu for the given menu ID.
       <summary>Equipment</summary>
       <ul>
         {{ range $equipmentSection.Pages }}
-          <li><a href="{{ .Permalink }}">{{ .Title }}</a></li>
+          <li><a href="{{ .Permalink }}"{{ if eq $page.Permalink .Permalink }} class="is-current-anchor"{{ end }}>{{ .Title }}</a></li>
         {{ end }}
       </ul>
     </details>
@@ -48,7 +48,7 @@ Renders a menu for the given menu ID.
         <li><a rel="external" href="https://docs.google.com/forms/d/e/1FAIpQLScz7JjZSpS_MpE5bII2uM5WkyXrmbD4KAeH4N_RpPIu-HOudQ/viewform?usp=pp_url">Raise a trouble ticket</a></li>
         <li><a rel="external" href="https://docs.google.com/forms/d/e/1FAIpQLSeXnBIYXfBZzLjdmRYb3W3K3F-Fx9iocXMJtf12hIIxxAxypw/viewform?usp=pp_url">Report an incident or injury</a></li>
         {{ range $moreSection.Pages }}
-          <li><a href="{{ .Permalink }}">{{ .Title }}</a></li>
+          <li><a href="{{ .Permalink }}"{{ if eq $page.Permalink .Permalink }} class="is-current-anchor"{{ end }}>{{ .Title }}</a></li>
         {{ end }}
       </ul>
     </details>
