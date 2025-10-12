@@ -3,33 +3,30 @@
 
   {{ $dateMachine := .Date | time.Format "2006-01-02T15:04:05-07:00" }}
   {{ $dateHuman := .Date | time.Format ":date_long" }}
-  <h2>Date</h2>
-  <time datetime="{{ $dateMachine }}">{{ $dateHuman }}</time>
-
-  <h2>Makers</h2>
-  <ul>
-  {{ range .Params.members }}
+  <ul class="byline">
+    <li><time datetime="{{ $dateMachine }}">{{ $dateHuman }}</time></li>
+    {{ range .Params.members }}
     <li>{{ . }}</li>
-  {{ end }}
+    {{ end }}
   </ul>
 
-  <h2>Photos</h2>
-  {{ range .Params.images }}
-    {{ $name := . }}
-    {{ with resources.Get $name }}
-    {{ $new := .Resize "100x" }}
-    <img src="{{ $new.RelPermalink }}" width="{{ $new.Width }}" height="{{ $new.Height }}"></img>
+  <div class="make-photos">
+    {{ range .Params.images }}
+      {{ $name := . }}
+      {{ with resources.Get $name }}
+      {{ $new := .Resize "1000x" }}
+      <div class="make-photo">
+        <img src="{{ $new.RelPermalink }}" width="{{ $new.Width }}" height="{{ $new.Height }}" alt="3D printed components" loading="lazy">
+      </div>
+      {{ end }}
     {{ end }}
-  {{ end }}
-
-  <noscript>
-    <style>
-      .share-button { display: none !important; }
-    </style>
-  </noscript>
-  <button class="share-button" onclick="shareContent()">Share</button>
+  </div>
 
   {{ .Content }}
+
+  <div>
+    <button class="needs-js" onclick="shareContent()">Share</button>
+  </div>
 
   <script>
     async function shareContent() {
