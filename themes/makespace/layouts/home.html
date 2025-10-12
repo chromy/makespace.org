@@ -1,14 +1,17 @@
 {{ define "main" }}
   {{ .Content }}
-  {{- $makeSection := site.GetPage "section" "make" }}
+  {{- $makesSection := site.GetPage "section" "makes" }}
 
-  {{ range $makeSection.Pages }}
+  <h2>Makes ({{ $makesSection.Pages.Len }})</h2>
+  <div class="quilt">
+  {{ range $makesSection.Pages }}
     {{- $name := index (.Params.images) 0 }}
     {{- $image := resources.Get $name }}
-    {{- $small := $image.Resize "100x" }}
+    {{- $small := $image.Resize "300x" }}
     <a href="{{ .Permalink }}"><img
         src="{{ $small.RelPermalink }}"
-        width="{{ $small.Width }}"
-        height="{{ $small.Height}}"></img></a>
+        width="{{ math.Div $small.Width 2}}"
+        height="{{ math.Div $small.Height 2}}"></img></a>
   {{ end }}
+  </div>
 {{ end }}
