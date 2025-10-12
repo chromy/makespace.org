@@ -17,33 +17,41 @@ Renders a menu for the given menu ID.
 
 {{- with index site.Menus $menuID }}
   <nav>
-    <h2>Makes</h2>
-    <ul>
-      {{ range $makeSection.Pages }}
-        <li><a href="{{ .Permalink }}">{{ .Title }}</a></li>
-      {{ end }}
-    </ul>
-    <h2>Case studies</h2>
-    <ul>
-      {{ range $caseSection.Pages }}
-        <li><a href="{{ .Permalink }}">{{ .Title }}</a></li>
-      {{ end }}
-    </ul>
-    <h2>Equipment</h2>
-    <ul>
-      {{ range $equipmentSection.Pages }}
-        <li><a href="{{ .Permalink }}">{{ .Title }}</a></li>
-      {{ end }}
-    </ul>
-    <h2>More</h2>
-    <ul>
-      <li><a rel="external" href="https://app.makespace.org/">Members' app</a></li>
-      <li><a rel="external" href="https://docs.google.com/forms/d/e/1FAIpQLScz7JjZSpS_MpE5bII2uM5WkyXrmbD4KAeH4N_RpPIu-HOudQ/viewform?usp=pp_url">Raise a trouble ticket</a></li>
-      <li><a rel="external" href="https://docs.google.com/forms/d/e/1FAIpQLSeXnBIYXfBZzLjdmRYb3W3K3F-Fx9iocXMJtf12hIIxxAxypw/viewform?usp=pp_url">Report an incident or injury</a></li>
-      {{ range $moreSection.Pages }}
-        <li><a href="{{ .Permalink }}">{{ .Title }}</a></li>
-      {{ end }}
-    </ul>
+    <details>
+      <summary>Makes</summary>
+      <ul>
+        {{ range $makeSection.Pages }}
+          <li><a href="{{ .Permalink }}">{{ .Title }}</a></li>
+        {{ end }}
+      </ul>
+    </details>
+    <details>
+      <summary>Case studies</summary>
+      <ul>
+        {{ range $caseSection.Pages }}
+          <li><a href="{{ .Permalink }}">{{ .Title }}</a></li>
+        {{ end }}
+      </ul>
+    </details>
+    <details>
+      <summary>Equipment</summary>
+      <ul>
+        {{ range $equipmentSection.Pages }}
+          <li><a href="{{ .Permalink }}">{{ .Title }}</a></li>
+        {{ end }}
+      </ul>
+    </details>
+    <details>
+      <summary>More</summary>
+      <ul>
+        <li><a rel="external" href="https://app.makespace.org/">Members' app</a></li>
+        <li><a rel="external" href="https://docs.google.com/forms/d/e/1FAIpQLScz7JjZSpS_MpE5bII2uM5WkyXrmbD4KAeH4N_RpPIu-HOudQ/viewform?usp=pp_url">Raise a trouble ticket</a></li>
+        <li><a rel="external" href="https://docs.google.com/forms/d/e/1FAIpQLSeXnBIYXfBZzLjdmRYb3W3K3F-Fx9iocXMJtf12hIIxxAxypw/viewform?usp=pp_url">Report an incident or injury</a></li>
+        {{ range $moreSection.Pages }}
+          <li><a href="{{ .Permalink }}">{{ .Title }}</a></li>
+        {{ end }}
+      </ul>
+    </details>
   </nav>
 {{- end }}
 
