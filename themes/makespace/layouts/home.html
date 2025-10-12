@@ -1,7 +1,14 @@
 {{ define "main" }}
   {{ .Content }}
-  {{ range site.RegularPages }}
-    <h2><a href="{{ .RelPermalink }}">{{ .LinkTitle }}</a></h2>
-    {{ .Summary }}
+  {{- $makeSection := site.GetPage "section" "make" }}
+
+  {{ range $makeSection.Pages }}
+    {{- $name := index (.Params.images) 0 }}
+    {{- $image := resources.Get $name }}
+    {{- $small := $image.Resize "100x" }}
+    <a href="{{ .Permalink }}"><img
+        src="{{ $small.RelPermalink }}"
+        width="{{ $small.Width }}"
+        height="{{ $small.Height}}"></img></a>
   {{ end }}
 {{ end }}

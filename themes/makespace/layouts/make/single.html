@@ -3,10 +3,17 @@
 
   {{ $dateMachine := .Date | time.Format "2006-01-02T15:04:05-07:00" }}
   {{ $dateHuman := .Date | time.Format ":date_long" }}
+  <h2>Date</h2>
   <time datetime="{{ $dateMachine }}">{{ $dateHuman }}</time>
 
-  {{ .Content }}
+  <h2>Makers</h2>
+  <ul>
+  {{ range .Params.members }}
+    <li>{{ . }}</li>
+  {{ end }}
+  </ul>
 
+  <h2>Photos</h2>
   {{ range .Params.images }}
     {{ $name := . }}
     {{ with resources.Get $name }}
@@ -16,6 +23,7 @@
   {{ end }}
 
 
+  {{ .Content }}
 
   {{ partial "terms.html" (dict "taxonomy" "tags" "page" .) }}
 {{ end }}
