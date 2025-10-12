@@ -3,5 +3,9 @@ languageCode = "en-uk"
 title = "Makespace"
 theme = "makespace"
 
+[caches]
+  [caches.images]
+    dir = ':cacheDir/images'
+
 [taxonomies]
   member = "members"
