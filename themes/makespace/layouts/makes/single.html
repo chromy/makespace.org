@@ -22,8 +22,38 @@
     {{ end }}
   {{ end }}
 
+  <noscript>
+    <style>
+      .share-button { display: none !important; }
+    </style>
+  </noscript>
+  <button class="share-button" onclick="shareContent()">Share</button>
 
   {{ .Content }}
 
+  <script>
+    async function shareContent() {
+      if (!navigator.share) {
+        return;
+      }
+      try {
+        {{- $name := index .Params.images 0 }}
+        {{- $image := resources.Get $name }}
+        const imageResponse = await fetch('{{ $image.RelPermalink }}');
+        const imageBlob = await imageResponse.blob();
+        const imageFile = new File([imageBlob], '{{ $name }}', { type: imageBlob.type });
+
+        await navigator.share({
+          title: '{{ .Title }}',
+          url: window.location.href,
+          files: [imageFile]
+        });
+      } catch (error) {
+        console.error('Error sharing:', error);
+      }
+    }
+  </script>
+
   {{ partial "terms.html" (dict "taxonomy" "tags" "page" .) }}
 {{ end }}
+
