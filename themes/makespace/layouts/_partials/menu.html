@@ -17,7 +17,7 @@ Renders a menu for the given menu ID.
 
 {{- with index site.Menus $menuID }}
   <nav>
-    <details>
+    <details open>
       <summary>Makes</summary>
       <ul>
         {{ range $makeSection.Pages }}
@@ -25,7 +25,7 @@ Renders a menu for the given menu ID.
         {{ end }}
       </ul>
     </details>
-    <details>
+    <details open>
       <summary>Case studies</summary>
       <ul>
         {{ range $caseSection.Pages }}
@@ -33,7 +33,7 @@ Renders a menu for the given menu ID.
         {{ end }}
       </ul>
     </details>
-    <details>
+    <details open>
       <summary>Equipment</summary>
       <ul>
         {{ range $equipmentSection.Pages }}
@@ -41,7 +41,7 @@ Renders a menu for the given menu ID.
         {{ end }}
       </ul>
     </details>
-    <details>
+    <details open>
       <summary>More</summary>
       <ul>
         <li><a rel="external" href="https://app.makespace.org/">Members' app</a></li>
