@@ -61,14 +61,31 @@ jobs:
       - name: Configure Git
         run: |
           git config core.quotepath false
-      - name: Cache restore
-        id: cache-restore
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+      - name: Setup Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+      - name: Restore assets cache
+        id: cache-restore-assets
+        uses: actions/cache/restore@v4
+        with:
+          path: ./assets
+          key: assets-${{ github.run_id }}
+          restore-keys:
+            assets-
+      - name: Restore build cache
+        id: cache-restore-build
         uses: actions/cache/restore@v4
         with:
           path: ${{ runner.temp }}/hugo_cache
           key: hugo-${{ github.run_id }}
           restore-keys:
             hugo-
+      - name: Sync assets from GCS
+        run: gsutil -m rsync -r gs://makespace-photos assets
+
       - name: Build the site
         run: |
           hugo \
@@ -76,12 +93,18 @@ jobs:
             --minify \
             --baseURL "${{ steps.pages.outputs.base_url }}/" \
             --cacheDir "${{ runner.temp }}/hugo_cache"
-      - name: Cache save
-        id: cache-save
+      - name: Save assets cache
+        id: cache-save-assets
         uses: actions/cache/save@v4
         with:
           path: ${{ runner.temp }}/hugo_cache
-          key: ${{ steps.cache-restore.outputs.cache-primary-key }}
+          key: ${{ steps.cache-restore-assets.outputs.cache-primary-key }}
+      - name: Save build cache
+        id: cache-save-assets
+        uses: actions/cache/save@v4
+        with:
+          path: ./assets
+          key: ${{ steps.cache-restore-build.outputs.cache-primary-key }}
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
