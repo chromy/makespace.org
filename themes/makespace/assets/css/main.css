@@ -39,7 +39,6 @@ nav summary {
   margin-bottom: 0.3rem;
   padding: 0.5rem;
   background-color: var(--color-background);
-  border: 1px solid #ddd;
   border-radius: 4px;
   transition: background-color 0.2s ease;
 }
@@ -49,16 +48,9 @@ nav summary:hover {
 }
 
 nav details[open] summary {
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
-  border-bottom: none;
 }
 
 nav details ul {
-  border: 1px solid #ddd;
-  border-top: none;
-  border-bottom-left-radius: 4px;
-  border-bottom-right-radius: 4px;
   background-color: var(--color-background);
   padding: 0.5rem 0;
 }
@@ -68,7 +60,6 @@ nav details ul li {
 }
 
 nav details ul li:hover {
-  background-color: rgba(232, 110, 44, 0.05);
 }
 
 
