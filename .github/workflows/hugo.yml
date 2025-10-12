@@ -85,7 +85,6 @@ jobs:
             hugo-
       - name: Sync assets from GCS
         run: gsutil -m rsync -r gs://makespace-photos assets
-
       - name: Build the site
         run: |
           hugo \
