@@ -99,7 +99,7 @@ jobs:
           path: ${{ runner.temp }}/hugo_cache
           key: ${{ steps.cache-restore-assets.outputs.cache-primary-key }}
       - name: Save build cache
-        id: cache-save-assets
+        id: cache-save-build
         uses: actions/cache/save@v4
         with:
           path: ./assets
