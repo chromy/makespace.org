@@ -1,0 +1,24 @@
+{{- /*
+  Resolves a photo filename from content front matter to an image resource
+  fetched from the public bucket, or false when there is nothing to show.
+
+      {{ with partial "photo.html" "8748039701.jpg" }}{{ .Resize "300x" }}{{ end }}
+
+  The two failure modes are deliberately not the same. A 404 means the photo has
+  not been uploaded yet, which is a content problem: warn, skip it, carry on. A
+  transport error means the bucket is unreachable, and carrying on there would
+  quietly deploy a site with no photos at all — so that fails the build.
+*/ -}}
+{{- $name := . }}
+{{- $photo := false }}
+{{- $url := urls.JoinPath site.Params.photoBaseURL $name }}
+{{- with try (resources.GetRemote $url) }}
+  {{- with .Err }}
+    {{- errorf "fetching %s: %s" $url . }}
+  {{- else with .Value }}
+    {{- $photo = . }}
+  {{- else }}
+    {{- warnf "no photo at %s — upload it to the bucket" $url }}
+  {{- end }}
+{{- end }}
+{{- return $photo }}

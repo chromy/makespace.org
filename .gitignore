@@ -2,3 +2,5 @@
 /public/
 /assets/
 /resources/
+# `go build` names the binary after the module directory
+/makespace.org

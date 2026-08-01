@@ -12,11 +12,10 @@
 
   <div class="make-photos">
     {{ range .Params.images }}
-      {{ $name := . }}
-      {{ with resources.Get $name }}
+      {{ with partial "photo.html" . }}
       {{ $new := .Resize "1000x" }}
       <div class="make-photo">
-        <img src="{{ $new.RelPermalink }}" width="{{ $new.Width }}" height="{{ $new.Height }}" alt="3D printed components" loading="lazy">
+        <img src="{{ $new.RelPermalink }}" width="{{ $new.Width }}" height="{{ $new.Height }}" alt="{{ $.Title }}" loading="lazy">
       </div>
       {{ end }}
     {{ end }}
@@ -34,17 +33,26 @@
         return;
       }
       try {
-        {{- $name := index .Params.images 0 }}
-        {{- $image := resources.Get $name }}
-        const imageResponse = await fetch('{{ $image.RelPermalink }}');
-        const imageBlob = await imageResponse.blob();
-        const imageFile = new File([imageBlob], '{{ $name }}', { type: imageBlob.type });
-
-        await navigator.share({
+        const data = {
           title: '{{ .Title }}',
-          url: window.location.href,
-          files: [imageFile]
-        });
+          url: window.location.href
+        };
+        {{- $name := "" }}
+        {{- $image := false }}
+        {{- with .Params.images }}
+          {{- $name = index . 0 }}
+          {{- $image = partial "photo.html" $name }}
+        {{- end }}
+        {{- with $image }}
+        // Share the resized copy, which is the one the page publishes; a page
+        // without a usable photo still shares its title and URL.
+        {{- $shared := .Resize "1000x" }}
+        const imageResponse = await fetch('{{ $shared.RelPermalink }}');
+        const imageBlob = await imageResponse.blob();
+        data.files = [new File([imageBlob], '{{ $name }}', { type: imageBlob.type })];
+        {{- end }}
+
+        await navigator.share(data);
       } catch (error) {
         console.error('Error sharing:', error);
       }

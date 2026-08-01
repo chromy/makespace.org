@@ -1,0 +1,25 @@
+{{ define "main" }}
+  <h1>{{ .Title }}</h1>
+
+  {{ .Content }}
+
+  {{/* Posts straight to the Go server, which uploads the photos to the bucket
+       and opens a pull request. No JavaScript: the server answers with a page
+       either way, so this works with scripting off. */}}
+  <form class="submit-make" method="post" action="/submit" enctype="multipart/form-data">
+    <label for="title">Title</label>
+    <input id="title" name="title" type="text" maxlength="120" required
+           placeholder="Laser-cut wooden box">
+
+    <label for="body">What is it?</label>
+    <textarea id="body" name="body" rows="6" maxlength="5000"
+              placeholder="A sentence or two about what you made and how."></textarea>
+
+    <label for="photos">Photos</label>
+    <input id="photos" name="photos" type="file" accept="image/jpeg,image/png" multiple required>
+    <p class="field-help">Up to 8 photos, 20&nbsp;MB each, JPEG or PNG. Location data is removed
+      before anything is published.</p>
+
+    <button type="submit">Send for review</button>
+  </form>
+{{ end }}

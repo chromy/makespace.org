@@ -259,3 +259,32 @@ ul.byline > li:not(:first-child)::before {
 }
 
 
+
+form.submit-make {
+  display: flex;
+  flex-direction: column;
+  max-width: 40rem;
+}
+
+form.submit-make label {
+  margin-top: 1rem;
+  font-weight: bold;
+}
+
+form.submit-make input[type="text"],
+form.submit-make textarea {
+  padding: 0.4rem;
+  font: inherit;
+}
+
+form.submit-make .field-help {
+  margin: 0.4rem 0 0;
+  font-size: 0.9rem;
+}
+
+form.submit-make button {
+  margin-top: 1.5rem;
+  padding: 0.6rem;
+  font: inherit;
+  align-self: flex-start;
+}

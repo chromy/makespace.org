@@ -5,13 +5,18 @@
   <h2>Makes ({{ $makesSection.Pages.Len }})</h2>
   <div class="quilt">
   {{ range $makesSection.Pages }}
-    {{- $name := index (.Params.images) 0 }}
-    {{- $image := resources.Get $name }}
-    {{- $small := $image.Resize "300x" }}
-    <a href="{{ .Permalink }}"><img
-        src="{{ $small.RelPermalink }}"
-        width="{{ math.Div $small.Width 2}}"
-        height="{{ math.Div $small.Height 2}}"></img></a>
+    {{- $page := . }}
+    {{- $image := false }}
+    {{- with .Params.images }}
+      {{- $image = partial "photo.html" (index . 0) }}
+    {{- end }}
+    {{- with $image }}
+      {{- $small := .Resize "300x" }}
+      <a href="{{ $page.Permalink }}"><img
+          src="{{ $small.RelPermalink }}"
+          width="{{ math.Div $small.Width 2}}"
+          height="{{ math.Div $small.Height 2}}"></img></a>
+    {{- end }}
   {{ end }}
   </div>
 {{ end }}

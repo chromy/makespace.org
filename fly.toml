@@ -1,0 +1,35 @@
+app = 'makespace-site'
+primary_region = 'lhr'
+
+[build]
+  # CI builds and pushes the image itself, so `fly deploy --image` skips this.
+  # A local `fly deploy` still builds the serve stage from the Dockerfile.
+  target = 'serve'
+
+[env]
+  SITE_DIR = '/site'
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'suspend'
+  auto_start_machines = true
+  # The site is static and cheap to hold in memory; suspending an idle machine
+  # keeps the bill near zero and resumes in milliseconds.
+  min_machines_running = 0
+  processes = ['app']
+
+  [[http_service.checks]]
+    grace_period = '5s'
+    interval = '30s'
+    method = 'GET'
+    path = '/healthz'
+    timeout = '5s'
+
+[[vm]]
+  # 512 MB is sized for the submission path, not for serving files: decoding a
+  # photo and rotating it holds two RGBA copies at once, which is why image.go
+  # caps the pixel count.
+  memory = '512mb'
+  cpu_kind = 'shared'
+  cpus = 1

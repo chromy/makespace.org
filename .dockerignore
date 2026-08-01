@@ -1,0 +1,10 @@
+.git/
+.github/
+public/
+resources/
+.hugo_build.lock
+CLAUDE.md
+TODO.md
+Dockerfile
+.dockerignore
+fly.toml

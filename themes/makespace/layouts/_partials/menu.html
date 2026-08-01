@@ -42,6 +42,9 @@ rather than driven by site.Menus.
     <details open>
       <summary><a href="{{ $moreSection.Permalink }}">More</a></summary>
       <ul>
+        {{ with site.GetPage "/submit" }}
+          <li><a href="{{ .Permalink }}"{{ if eq $page.Permalink .Permalink }} class="is-current-anchor"{{ end }}>{{ .Title }}</a></li>
+        {{ end }}
         <li><a rel="external" href="https://app.makespace.org/">Members' app</a></li>
         <li><a rel="external" href="https://docs.google.com/forms/d/e/1FAIpQLScz7JjZSpS_MpE5bII2uM5WkyXrmbD4KAeH4N_RpPIu-HOudQ/viewform?usp=pp_url">Raise a trouble ticket</a></li>
         <li><a rel="external" href="https://docs.google.com/forms/d/e/1FAIpQLSeXnBIYXfBZzLjdmRYb3W3K3F-Fx9iocXMJtf12hIIxxAxypw/viewform?usp=pp_url">Report an incident or injury</a></li>

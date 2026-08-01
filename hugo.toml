@@ -3,6 +3,11 @@ locale = "en-GB"
 title = "Makespace"
 theme = "makespace"
 
+# Photos are fetched from the public Tigris bucket at build time rather than
+# synced to disk first; see _partials/photo.html.
+[params]
+  photoBaseURL = 'https://makespace-site-content.fly.storage.tigris.dev/'
+
 [caches]
   [caches.images]
     dir = ':cacheDir/images'
