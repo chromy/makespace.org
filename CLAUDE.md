@@ -40,7 +40,9 @@ call `.Resize` on the result of `resources.Get` without a `with` guard, so a mis
 that, run the sync — it is usually missing photos, not a broken template. Adding a new make means
 uploading its photos to the bucket as well as writing the markdown.
 
-`resources/_gen/images/` (Hugo's resized derivatives) *is* committed, unlike `assets/` and `public/`.
+`resources/` (Hugo's resized derivatives) is gitignored alongside `assets/` and `public/`, and Hugo
+regenerates it on demand. It used to be committed; the history was rewritten to drop it along with
+the one photo that had been committed to `assets/`, which took the repo from 9.26 MiB to ~51 KiB.
 
 ## Content model
 
