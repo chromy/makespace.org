@@ -1,5 +1,5 @@
 baseURL = "https://makespace.org/"
-languageCode = "en-uk"
+locale = "en-GB"
 title = "Makespace"
 theme = "makespace"
 

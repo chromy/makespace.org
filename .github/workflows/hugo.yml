@@ -19,9 +19,12 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GO_VERSION: 1.25.1
-      HUGO_VERSION: 0.151.0
+      HUGO_VERSION: 0.164.0
       NODE_VERSION: 24.10.0
       TZ: Europe/London
+      AWS_ENDPOINT_URL_S3: https://fly.storage.tigris.dev
+      AWS_REGION: auto
+      BUCKET_NAME: makespace-site-content
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -61,12 +64,6 @@ jobs:
       - name: Configure Git
         run: |
           git config core.quotepath false
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-      - name: Setup Google Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
       - name: Restore assets cache
         id: cache-restore-assets
         uses: actions/cache/restore@v4
@@ -83,8 +80,14 @@ jobs:
           key: hugo-${{ github.run_id }}
           restore-keys:
             hugo-
-      - name: Sync assets from GCS
-        run: gsutil -m rsync -r gs://makespace-photos assets
+      - name: Sync assets from Tigris
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.TIGRIS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.TIGRIS_SECRET_ACCESS_KEY }}
+        run: |
+          aws s3 sync "s3://${BUCKET_NAME}" assets \
+            --endpoint-url "${AWS_ENDPOINT_URL_S3}" \
+            --no-progress
       - name: Build the site
         run: |
           hugo \
@@ -96,13 +99,13 @@ jobs:
         id: cache-save-assets
         uses: actions/cache/save@v4
         with:
-          path: ${{ runner.temp }}/hugo_cache
+          path: ./assets
           key: ${{ steps.cache-restore-assets.outputs.cache-primary-key }}
       - name: Save build cache
         id: cache-save-build
         uses: actions/cache/save@v4
         with:
-          path: ./assets
+          path: ${{ runner.temp }}/hugo_cache
           key: ${{ steps.cache-restore-build.outputs.cache-primary-key }}
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

@@ -1,21 +1,19 @@
 {{- /*
-Renders a menu for the given menu ID.
+Renders the site navigation. The sections and their order are hardcoded below
+rather than driven by site.Menus.
 
-@context {page} page The is-current-anchor page.
-@context {string} menuID The menu ID.
+@context {page} . The is-current-anchor page.
 
-@example: {{ partial "menu.html" (dict "menuID" "main" "page" .) }}
+@example: {{ partial "menu.html" . }}
 */}}
 
-{{- $page := .page }}
-{{- $menuID := .menuID }}
+{{- $page := . }}
 
 {{- $makesSection := site.GetPage "section" "makes" }}
 {{- $studiesSection := site.GetPage "section" "studies" }}
 {{- $equipmentSection := site.GetPage "section" "equipment" }}
 {{- $moreSection := site.GetPage "section" "more" }}
 
-{{- with index site.Menus $menuID }}
   <nav>
     <details open>
       <summary><a href="{{ $makesSection.Permalink }}">Makes</a></summary>
@@ -53,5 +51,4 @@ Renders a menu for the given menu ID.
       </ul>
     </details>
   </nav>
-{{- end }}
 
