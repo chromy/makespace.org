@@ -4,13 +4,13 @@
 
 - Search
 
-- Rename more to ? (help?)
 - Footer info
 - Mark external links more pretty
 - lint / formatter
 - More mobile styling
 
 # TODONE
+- Rename more to Resources
 - More example content
 - Deploy
 - Github build

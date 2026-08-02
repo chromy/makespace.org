@@ -10,7 +10,7 @@ rather than driven by site.Menus.
 {{- $page := . }}
 
 {{- $makesSection := site.GetPage "section" "makes" }}
-{{- $moreSection := site.GetPage "section" "more" }}
+{{- $resourcesSection := site.GetPage "section" "resources" }}
 
   <nav>
     <details open>
@@ -22,15 +22,22 @@ rather than driven by site.Menus.
       </ul>
     </details>
     <details open>
-      <summary><a href="{{ $moreSection.Permalink }}">More</a></summary>
+      {{/* Plain text rather than a link: there is no section page behind this
+           group, and an anchor with an empty href is worse than no anchor. */}}
+      <summary>Post something</summary>
       <ul>
         {{ with site.GetPage "/submit" }}
           <li><a href="{{ .Permalink }}"{{ if eq $page.Permalink .Permalink }} class="is-current-anchor"{{ end }}>{{ .Title }}</a></li>
         {{ end }}
+      </ul>
+    </details>
+    <details open>
+      <summary><a href="{{ $resourcesSection.Permalink }}">Resources</a></summary>
+      <ul>
         <li><a rel="external" href="https://app.makespace.org/">Members' app</a></li>
         <li><a rel="external" href="https://docs.google.com/forms/d/e/1FAIpQLScz7JjZSpS_MpE5bII2uM5WkyXrmbD4KAeH4N_RpPIu-HOudQ/viewform?usp=pp_url">Raise a trouble ticket</a></li>
         <li><a rel="external" href="https://docs.google.com/forms/d/e/1FAIpQLSeXnBIYXfBZzLjdmRYb3W3K3F-Fx9iocXMJtf12hIIxxAxypw/viewform?usp=pp_url">Report an incident or injury</a></li>
-        {{ range $moreSection.Pages }}
+        {{ range $resourcesSection.Pages }}
           <li><a href="{{ .Permalink }}"{{ if eq $page.Permalink .Permalink }} class="is-current-anchor"{{ end }}>{{ .Title }}</a></li>
         {{ end }}
       </ul>

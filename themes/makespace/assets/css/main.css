@@ -10,30 +10,43 @@
  *      the photo quilt, the photo grid on a make, the submission form. Take
  *      these as a floor to build on rather than as decisions to keep.
  *
- * There is deliberately no decoration: no shadows, no rounded corners, no
- * transitions, no hover effects, no font-size scale. Browser defaults handle
- * headings, blockquotes and code, and they are fine until someone decides
- * otherwise. If you are adding to this file, prefer a new variable over a
- * hardcoded value, and prefer changing an element's default to inventing a
- * class — the templates use very few.
+ * Beyond that it takes only the readability moves from Jeremy Thomas's "Web
+ * Design in 4 Minutes": a limit on line length, room to breathe around
+ * headings, and body text a shade lighter than its headings. Those three cost
+ * almost nothing and are hard to regret. The steps after them in that piece —
+ * a brand palette, a webfont, a hero image — are deliberately not here, since
+ * they are the actual design decisions and someone else should make them.
+ *
+ * There is otherwise no decoration: no shadows, no rounded corners, no
+ * transitions, no hover effects. If you are adding to this file, prefer a new
+ * variable over a hardcoded value, and prefer changing an element's default to
+ * inventing a class — the templates use very few.
  */
 
 :root {
   /* Colour. The accent is Makespace orange and is the one brand commitment
-     here; everything else is deliberately plain. */
-  --color-foreground: #222;
+     here; everything else is deliberately plain. Body text sits a shade lighter
+     than headings and bold text, which is what stops a page of prose reading as
+     one flat block. */
+  --color-foreground: #444;
+  --color-emphasis: #222;
   --color-background: #fffefe;
   --color-accent: rgb(232, 110, 44);
 
-  /* Type. */
-  --font-body: Bahnschrift, 'DIN Alternate', 'Franklin Gothic Medium',
-               'Nimbus Sans Narrow', sans-serif-condensed, sans-serif;
+  /* Type. Whatever the reader's system already has, in rough order of
+     preference per platform, ending in the generic. No webfont, so nothing to
+     download and nothing to wait for before text paints. */
+  --font-body: -apple-system, BlinkMacSystemFont, avenir next, avenir, segoe ui, helvetica neue, Adwaita Sans, Cantarell, Ubuntu, roboto, noto, helvetica, arial, sans-serif;
   --line-height: 1.5;
 
   /* Rhythm and measure. --space is the unit every margin and padding here is
-     a multiple of; --sidebar is the width of the nav column on wide screens. */
+     a multiple of; --sidebar is the width of the nav column on wide screens.
+     --measure caps the length of a line of text: past roughly 75 characters
+     the eye loses the start of the next line. It is applied to prose only, so
+     the photo grids stay as wide as the column allows. */
   --space: 1rem;
   --sidebar: auto;
+  --measure: 42rem;
 
   /* The width at which the layout becomes two columns. Note this cannot be a
      variable in the media query itself — CSS does not allow that — so it is
@@ -56,6 +69,29 @@ body {
   color: var(--color-foreground);
   font-family: var(--font-body);
   line-height: var(--line-height);
+}
+
+/* Prose only: the quilt and the photo grids are not text and stay full width. */
+main :is(p, ul, ol, dl, blockquote, h1, h2, h3, h4) {
+  max-width: var(--measure);
+}
+
+/* Headings carry the darker shade and enough space above to group with what
+   follows them rather than float between two blocks. */
+h1,
+h2,
+h3,
+h4,
+strong {
+  color: var(--color-emphasis);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin-top: calc(var(--space) * 2);
+  line-height: 1.2;
 }
 
 a {
@@ -83,6 +119,11 @@ header {
 main {
   grid-area: main;
   padding: calc(var(--space) * 2) var(--space);
+  /* Holds the footer off the first screen, however short the page is: a
+     visitor should meet the content, not the footer. vh rather than dvh or svh
+     deliberately — those shrink as mobile browser chrome expands, which would
+     let the footer creep into view. */
+  min-height: 100vh;
 }
 
 footer {
