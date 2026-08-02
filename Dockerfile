@@ -10,7 +10,9 @@
 # architecture, so this stage always runs natively rather than under emulation.
 FROM --platform=$BUILDPLATFORM ghcr.io/gohugoio/hugo:v0.164.0 AS build
 
-ARG HUGO_BASEURL=https://makespace.org/
+# The default is what CI builds with, since the workflow passes no build-arg.
+# Change this and hugo.toml together when the domain moves to Fly.
+ARG HUGO_BASEURL=https://makespace-site.fly.dev/
 
 # Front matter carries explicit UTC offsets, but the site has no `timeZone` set,
 # so anything Hugo resolves against the local zone follows the container. Pin it

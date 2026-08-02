@@ -1,4 +1,7 @@
-baseURL = "https://makespace.org/"
+# Where the site actually answers today. makespace.org still points at the old
+# GitHub Pages deployment, so building with that would emit absolute links to a
+# site this one is not.
+baseURL = "https://makespace-site.fly.dev/"
 locale = "en-GB"
 title = "Makespace"
 theme = "makespace"

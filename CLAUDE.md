@@ -70,7 +70,11 @@ Two things about building the image are load-bearing, both learned by breaking t
 
 **DNS still points makespace.org at GitHub Pages.** Until that changes and `fly certs add` issues a
 certificate, the Fly deployment is only reachable on its `.fly.dev` name, and the canonical site is
-still the old static one.
+still the old static one. Because of that the site is **built with `baseURL =
+https://makespace-site.fly.dev/`** — building with the real domain would emit absolute links, feeds
+and a sitemap pointing at a different site. That value is set twice, in `hugo.toml` and as the
+`HUGO_BASEURL` default in the `Dockerfile` (CI passes no build-arg, so the default is what ships).
+Both change together when the domain moves.
 
 ## The server
 
@@ -193,13 +197,16 @@ been committed to `assets/`, taking the repo from 9.26 MiB to ~51 KiB.
 
 ## Content model
 
-Three content sections, each with its own archetype in `themes/makespace/archetypes/`:
+One content section today, plus the standalone `content/submit.md`:
 
-- `content/makes/` — member projects. Uses `params.images` (photo filenames) and `members` (list of
-  member names). Rendered by the section-specific `layouts/makes/single.html`; other sections fall
-  through to `layouts/page.html`.
-- `content/studies/` — case studies about local companies. Front matter `author`.
-- `content/equipment/` — tools in the space. Front matter `category`, `location`, `status`.
+- `content/makes/` — member projects. Uses `params.images` (photo filenames), `members` (list of
+  member names) and `params.license`. Rendered by the section-specific `layouts/makes/single.html`;
+  anything else falls through to `layouts/page.html`.
+
+`content/studies/` (case studies, front matter `author`) and `content/equipment/` (tools, front
+matter `category`, `location`, `status`) were **removed for now** — both the content and their nav
+groups. Their archetypes are still in `themes/makespace/archetypes/`, ready for when they come back;
+the pages themselves are in git history (`git checkout <commit> -- content/studies content/equipment`).
 
 `members` is a taxonomy (declared in `hugo.toml`), so each member gets a listing page at
 `/members/<name>/`. It is the only taxonomy configured, though `page.html` and `makes/single.html`
@@ -211,8 +218,8 @@ that no existing page follows — real makes carry only `title`, `date`, `draft`
 
 ## Theme structure worth knowing
 
-- `layouts/_partials/menu.html` does not use Hugo's menu system at all. It hardcodes four groups
-  (Makes / Case studies / Equipment / More), listing every page in each section plus external links
+- `layouts/_partials/menu.html` does not use Hugo's menu system at all. It hardcodes two groups
+  (Makes / More), listing every page in the section plus external links
   to the members' app and Google Forms. Adding a nav entry means editing that partial. The "More"
   group's own heading links to a `more` section that does not exist in `content/`, so its `href`
   renders empty — `site.GetPage` returns nil there and Hugo tolerates it silently.
