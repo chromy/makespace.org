@@ -31,7 +31,16 @@ var fingerprinted = regexp.MustCompile(`(\.|_hu_)[0-9a-f]{16,}\.[a-z0-9]+$`)
 func main() {
 	addr := flag.String("addr", ":"+envOr("PORT", "8080"), "address to listen on")
 	dir := flag.String("dir", envOr("SITE_DIR", "public"), "directory holding the rendered site")
+	upload := flag.Bool("upload", false, "upload the named image files to the bucket and print their keys, instead of serving")
+	uploadSlug := flag.String("slug", "", "with -upload: the slug of the post the photos belong to")
 	flag.Parse()
+
+	if *upload {
+		if err := runUpload(context.Background(), *uploadSlug, flag.Args()); err != nil {
+			log.Fatalf("upload: %v", err)
+		}
+		return
+	}
 
 	site := os.DirFS(*dir)
 	if _, err := fs.Stat(site, "index.html"); err != nil {
@@ -120,12 +129,30 @@ func newSubmitHandler(ctx context.Context) (*submitHandler, error) {
 		return nil, err
 	}
 
-	uploader, err := newBucketUploader(ctx, bucket, envOr("AWS_ENDPOINT_URL_S3", "https://fly.storage.tigris.dev"))
+	uploader, err := newBucketUploader(ctx, bucket,
+		envOr("AWS_ENDPOINT_URL_S3", "https://fly.storage.tigris.dev"),
+		envOr("AWS_REGION", "auto"))
 	if err != nil {
 		return nil, err
 	}
 
 	return &submitHandler{codeword: codeword, uploader: uploader, prs: app, now: time.Now}, nil
+}
+
+// runUpload builds just enough of the server to put files in the bucket: no
+// GitHub App, no codeword, just the bucket credentials.
+func runUpload(ctx context.Context, slug string, paths []string) error {
+	bucket := envOr("BUCKET_NAME", "makespace-site-content")
+	endpoint := envOr("AWS_ENDPOINT_URL_S3", "https://fly.storage.tigris.dev")
+
+	uploader, err := newBucketUploader(ctx, bucket, endpoint, envOr("AWS_REGION", "auto"))
+	if err != nil {
+		return err
+	}
+	// Where the site will read them back from, which is the bucket's own
+	// virtual-host name rather than the endpoint.
+	baseURL := strings.Replace(endpoint, "https://", "https://"+bucket+".", 1)
+	return uploadFiles(ctx, uploader, baseURL, slug, paths, os.Stdout)
 }
 
 func envOr(key, fallback string) string {

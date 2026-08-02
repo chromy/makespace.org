@@ -24,8 +24,11 @@ type bucketUploader struct {
 // AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY secrets Tigris issues. Note these
 // are *write* credentials held by the server — the public read access the site
 // build relies on needs no credentials at all.
-func newBucketUploader(ctx context.Context, bucket, endpoint string) (*bucketUploader, error) {
-	cfg, err := awsconfig.LoadDefaultConfig(ctx)
+func newBucketUploader(ctx context.Context, bucket, endpoint, region string) (*bucketUploader, error) {
+	// Tigris is a single global endpoint and wants the literal region "auto".
+	// Without a region the SDK fails deep inside endpoint resolution with
+	// "region was not a valid DNS name", which says nothing about the cause.
+	cfg, err := awsconfig.LoadDefaultConfig(ctx, awsconfig.WithRegion(region))
 	if err != nil {
 		return nil, fmt.Errorf("loading bucket credentials: %w", err)
 	}

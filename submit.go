@@ -121,9 +121,19 @@ func (h *submitHandler) handle(w http.ResponseWriter, r *http.Request, kind subm
 		return
 	}
 
-	// What identifies the post, and therefore what its file is called: a title
-	// for a make, the day it happened for a set of photos.
-	var path string
+	// The slug names the page's file, its URL, and every photo attached to it.
+	// It is optional on both forms: given one, it wins; otherwise it is derived
+	// from whatever identifies the post.
+	chosen := strings.TrimSpace(r.FormValue("slug"))
+	slug := slugify(chosen)
+	if chosen != "" && slug == "" {
+		h.respond(w, r, http.StatusBadRequest, "That slug needs at least one letter or number.", "")
+		return
+	}
+
+	// What identifies the post when no slug is given: a title for a make, the
+	// day it happened for a set of photos.
+	section := "makes"
 	date := h.now()
 	switch kind {
 	case kindMake:
@@ -135,25 +145,20 @@ func (h *submitHandler) handle(w http.ResponseWriter, r *http.Request, kind subm
 			h.respond(w, r, http.StatusBadRequest, "That title is too long.", "")
 			return
 		}
-		slug := slugify(title)
+		if slug == "" {
+			slug = slugify(title)
+		}
 		if slug == "" {
 			h.respond(w, r, http.StatusBadRequest, "That title needs at least one letter or number.", "")
 			return
 		}
-		path = "content/makes/" + slug + ".md"
 
 	case kindPhotos:
-		// A date-only field, taken as midday so that no timezone shifts it onto
-		// the day before or after.
-		day, err := time.Parse(dateLayout, strings.TrimSpace(r.FormValue("date")))
-		if err != nil {
-			h.respond(w, r, http.StatusBadRequest, "Give the date the photos were taken.", "")
-			return
-		}
-		date = time.Date(day.Year(), day.Month(), day.Day(), 12, 0, 0, 0, time.UTC)
-		// Photos have no title of their own, so the page is named for its day.
-		// A second set from the same day would collide, hence the suffix, which
-		// is filled in once the first photo has been hashed.
+		section = "photos"
+		// The form does not ask when the photos were taken — one fewer field to
+		// fill in, and the answer is nearly always "today". The front matter
+		// still carries a date so a reviewer can correct it in the pull request
+		// when it is not; the file keeps the day it was posted either way.
 		title = date.Format("2 January 2006")
 	}
 
@@ -168,7 +173,10 @@ func (h *submitHandler) handle(w http.ResponseWriter, r *http.Request, kind subm
 		return
 	}
 
-	keys := make([]string, 0, len(files))
+	// Read and normalise everything before uploading anything: the photos are
+	// named after the post, and a photo post with no slug is in turn named after
+	// its first photo's hash, so nothing can be stored until all of it is known.
+	photos := make([]photo, 0, len(files))
 	for _, fh := range files {
 		p, err := h.readPhoto(fh)
 		if err != nil {
@@ -178,11 +186,18 @@ func (h *submitHandler) handle(w http.ResponseWriter, r *http.Request, kind subm
 				fmt.Sprintf("Could not accept %q: %s", fh.Filename, err), "")
 			return
 		}
-		// Content-addressed: the same photo uploaded twice is one object, and a
-		// key never points at different bytes later — which is what lets both the
-		// bucket and the site serve it as immutable.
-		sum := sha256.Sum256(p.data)
-		key := hex.EncodeToString(sum[:]) + p.ext
+		photos = append(photos, p)
+	}
+
+	if slug == "" {
+		// Only reachable for a photo post with no slug: name it for the photos
+		// themselves, which keeps two sets posted on the same day apart.
+		slug = "photos-" + photoHash(photos[0])[:8]
+	}
+
+	keys := make([]string, 0, len(photos))
+	for i, p := range photos {
+		key := photoKey(slug, i+1, photoHash(p), p.ext)
 		if err := h.uploader.Upload(r.Context(), key, p.contentType, p.data); err != nil {
 			// Nothing wrong with the photo, so do not tell the member there is.
 			log.Printf("submit: uploading %s for %q: %v", key, name, err)
@@ -193,13 +208,12 @@ func (h *submitHandler) handle(w http.ResponseWriter, r *http.Request, kind subm
 		keys = append(keys, key)
 	}
 
-	if kind == kindPhotos {
-		// Now that the photos are hashed, the day can be made unique without
-		// asking the member to name anything.
-		path = fmt.Sprintf("content/photos/%s-%s.md", date.Format(dateLayout), keys[0][:8])
-	}
+	// Files are named for the day they were submitted, so a directory listing
+	// reads chronologically. The URL keeps the bare slug via front matter, so it
+	// does not carry a date the reader has no use for.
+	path := fmt.Sprintf("content/%s/%s-%s.md", section, h.now().Format(dateLayout), slug)
 
-	markdown := buildMarkdown(title, body, name, licence, keys, date)
+	markdown := buildMarkdown(title, slug, body, name, licence, keys, date)
 	prTitle := "Add " + map[submitKind]string{kindMake: "make: ", kindPhotos: "photos: "}[kind] + title
 	prBody := fmt.Sprintf("Submitted by %s through the form on the site.\n\nPhotos are already in the bucket, so this can be previewed by building the branch.", name)
 
@@ -213,6 +227,23 @@ func (h *submitHandler) handle(w http.ResponseWriter, r *http.Request, kind subm
 
 	log.Printf("submit: %q by %s -> %s", title, name, url)
 	h.respond(w, r, http.StatusOK, "Thanks — your make is waiting for review.", url)
+}
+
+// photoKey names a photo after the post it came from, its position in that post
+// and its content: `a-very-nice-shelf-001-<sha256>.jpg`.
+//
+// The hash is what matters for caching — a key still never points at different
+// bytes later, so both the bucket and the site can serve it as immutable. The
+// slug and index are there for the human staring at a bucket listing, and they
+// cost the one thing a pure content hash gave for free: the same photo attached
+// to two posts is now stored twice under two names.
+func photoKey(slug string, index int, hash, ext string) string {
+	return fmt.Sprintf("%s-%03d-%s%s", slug, index, hash, ext)
+}
+
+func photoHash(p photo) string {
+	sum := sha256.Sum256(p.data)
+	return hex.EncodeToString(sum[:])
 }
 
 // readPhoto reads one uploaded file and normalises it. Every error it returns
@@ -241,10 +272,14 @@ func (h *submitHandler) readPhoto(fh *multipart.FileHeader) (photo, error) {
 // buildMarkdown writes the front matter the makes section expects: title, date,
 // draft, members, params.license and params.images, then the description as the
 // body.
-func buildMarkdown(title, body, member, licence string, photos []string, now time.Time) string {
+func buildMarkdown(title, slug, body, member, licence string, photos []string, now time.Time) string {
 	var b strings.Builder
 	b.WriteString("---\n")
 	fmt.Fprintf(&b, "title: %s\n", yamlString(title))
+	// The file is named <posted date>-<slug>, so without this the date would
+	// end up in the URL too. It is the date the photos were taken, or the make
+	// was submitted; the filename carries the posting date.
+	fmt.Fprintf(&b, "slug: %s\n", yamlString(slug))
 	fmt.Fprintf(&b, "date: %s\n", yamlString(now.Format(time.RFC3339)))
 	b.WriteString("draft: false\n")
 	b.WriteString("members:\n")

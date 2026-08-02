@@ -93,10 +93,20 @@ routes go on the mux in `newHandler`, which is also what the tests drive.
 
 ## Submissions: form → bucket → pull request
 
-`POST /submit` (`submit.go`) takes a multipart form — title, description, photos — and turns it into
-a pull request against `content/makes/`. The page is `content/submit.md` with the
-`themes/makespace/layouts/submit.html` layout, and it is a plain HTML form: the server answers with
-a rendered page either way, so it works with JavaScript off.
+There are two forms, both plain HTML posting multipart to the Go server, which answers with a
+rendered page either way so they work with JavaScript off. They share everything in `submit.go` —
+codeword, photo pipeline, pull request — and differ only in what identifies the post:
+
+| | route | page | writes to | identified by |
+|---|---|---|---|---|
+| A project | `POST /submit` | `content/submit.md` → `submit.html` | `content/makes/<slug>.md` | its title |
+| Photos | `POST /submit/photos` | `content/add-photos.md` → `submit-photos.html` | `content/photos/<date>-<hash>.md` | the day it happened |
+
+Both carry author, licence and notes. The photos form has no title — the handler writes the day as
+the title (`14 July 2026`) — and takes the date from the member rather than the server clock, since
+photos are usually posted after the fact. Two sets from the same day would collide on the filename,
+so the first photo's hash is appended. `layouts/photos/single.html` renders the result; the section
+does not exist until something is merged into it.
 
 The flow, and why each part is the way it is:
 
@@ -151,8 +161,15 @@ machines automatically.
 Runtime configuration, all Fly secrets: `GITHUB_CLIENT_ID`, `GITHUB_PRIVATE_KEY` (PEM, newlines
 intact), `SUBMIT_CODEWORD`, plus `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` for *write* access to
 the bucket. Optional overrides: `GITHUB_OWNER`, `GITHUB_REPO`, `GITHUB_BASE_BRANCH`, `BUCKET_NAME`,
-`AWS_ENDPOINT_URL_S3`. With any of the three required values unset the server still serves the site
-and `/submit` answers 503.
+`AWS_ENDPOINT_URL_S3`, `AWS_REGION` (defaults to `auto`, which is what Tigris wants — without a
+region the SDK fails inside endpoint resolution with "region was not a valid DNS name", naming
+nothing useful). With any of the three required values unset the server still serves the site and
+both submission routes answer 503.
+
+**The Fly app has no Tigris write credentials set yet**, so uploads answer 502 until
+`AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` are added to its secrets. The failure is slow as
+well as unhelpful: with no credentials anywhere the SDK spends five seconds trying EC2 instance
+metadata before giving up.
 
 Failures are split by whose problem they are: a file that is too large, not an image, or too many
 megapixels is 400 and names the file, because the member can fix it; a bucket that will not accept

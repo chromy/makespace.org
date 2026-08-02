@@ -129,18 +129,22 @@ func TestSubmitOpensPullRequest(t *testing.T) {
 	for k := range up.uploaded {
 		key = k
 	}
-	if !strings.HasSuffix(key, ".jpg") || len(key) != 64+len(".jpg") {
-		t.Errorf("key = %q, want a sha256 hex name with a .jpg suffix", key)
+	// slug-XXX-sha256.ext, with the slug taken from the title.
+	if !regexp.MustCompile(`^a-very-nice-shelf-001-[0-9a-f]{64}\.jpg$`).MatchString(key) {
+		t.Errorf("key = %q, want a-very-nice-shelf-001-<sha256>.jpg", key)
 	}
 	if up.types[key] != "image/jpeg" {
 		t.Errorf("content type = %q, want image/jpeg", up.types[key])
 	}
 
-	if prs.path != "content/makes/a-very-nice-shelf.md" {
-		t.Errorf("path = %q, want the slugged content path", prs.path)
+	// Named for the day it was submitted, so the directory reads in order.
+	if prs.path != "content/makes/2026-08-01-a-very-nice-shelf.md" {
+		t.Errorf("path = %q, want the dated content path", prs.path)
 	}
 	for _, want := range []string{
 		"title: 'A Very Nice Shelf'",
+		// The slug keeps the posting date out of the URL.
+		"slug: 'a-very-nice-shelf'",
 		"date: '2026-08-01T12:00:00Z'",
 		"draft: false",
 		"- 'Ada L'",
@@ -372,7 +376,7 @@ func TestSlugify(t *testing.T) {
 
 func TestYAMLStringEscapes(t *testing.T) {
 	// A title containing a quote must not break out of the front matter.
-	got := buildMarkdown("Ada's \"Best\" Shelf", "", "Ada L", "cc-by-4.0", []string{"a.jpg"}, time.Unix(0, 0).UTC())
+	got := buildMarkdown("Ada's \"Best\" Shelf", "adas-best-shelf", "", "Ada L", "cc-by-4.0", []string{"a.jpg"}, time.Unix(0, 0).UTC())
 	if !strings.Contains(got, "title: 'Ada''s \"Best\" Shelf'") {
 		t.Errorf("quote not escaped:\n%s", got)
 	}

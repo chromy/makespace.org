@@ -15,8 +15,11 @@
     <input id="name" name="name" type="text" maxlength="80" required
            placeholder="Ada L">
 
-    <label for="date">When were they taken?</label>
-    <input id="date" name="date" type="date" required>
+    <label for="slug">Short name</label>
+    <input id="slug" name="slug" type="text" maxlength="80"
+           placeholder="tuesday-tidy-up" autocomplete="off" spellcheck="false">
+    <p class="field-help">Optional. Names the page's address and its photos. Left blank, one is
+      made up from the date.</p>
 
     <label for="body">Notes</label>
     <textarea id="body" name="body" rows="4" maxlength="5000"
