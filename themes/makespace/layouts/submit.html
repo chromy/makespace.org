@@ -7,6 +7,15 @@
        and opens a pull request. No JavaScript: the server answers with a page
        either way, so this works with scripting off. */}}
   <form class="submit-make" method="post" action="/submit" enctype="multipart/form-data">
+    <label for="codeword">Codeword</label>
+    <input id="codeword" name="codeword" type="text" required autocomplete="off"
+           spellcheck="false" autocapitalize="none">
+    <p class="field-help">Ask in the space or on the members' app if you do not have it.</p>
+
+    <label for="name">Your name</label>
+    <input id="name" name="name" type="text" maxlength="80" required
+           placeholder="Riley P">
+
     <label for="title">Title</label>
     <input id="title" name="title" type="text" maxlength="120" required
            placeholder="Laser-cut wooden box">

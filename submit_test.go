@@ -47,10 +47,12 @@ func (f *fakePRs) OpenPullRequest(_ context.Context, path, content, title, body 
 	return "https://github.com/chromy/makespace.org/pull/7", nil
 }
 
-func testHandler(auth Authenticator) (*submitHandler, *fakeUploader, *fakePRs) {
+const testCodeword = "opensesame"
+
+func testHandler() (*submitHandler, *fakeUploader, *fakePRs) {
 	up, prs := newFakeUploader(), &fakePRs{}
 	h := &submitHandler{
-		auth:     auth,
+		codeword: testCodeword,
 		uploader: up,
 		prs:      prs,
 		now:      func() time.Time { return time.Date(2026, 8, 1, 12, 0, 0, 0, time.UTC) },
@@ -93,9 +95,14 @@ func samplePhoto(t *testing.T) []byte {
 }
 
 func TestSubmitOpensPullRequest(t *testing.T) {
-	h, up, prs := testHandler(devMember{name: "Riley P"})
+	h, up, prs := testHandler()
 	req := formRequest(t,
-		map[string]string{"title": "A Very Nice Shelf", "body": "Made from offcuts."},
+		map[string]string{
+			"codeword": testCodeword,
+			"name":     "Riley P",
+			"title":    "A Very Nice Shelf",
+			"body":     "Made from offcuts.",
+		},
 		map[string][]byte{"shelf.jpg": samplePhoto(t)})
 
 	rec := httptest.NewRecorder()
@@ -143,42 +150,62 @@ func TestSubmitOpensPullRequest(t *testing.T) {
 	}
 }
 
-// The bucket is public, so an unauthenticated caller must not be able to put
-// objects in it or open pull requests.
-func TestSubmitRequiresAMember(t *testing.T) {
-	h, up, prs := testHandler(deniedAuth{})
-	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, formRequest(t,
-		map[string]string{"title": "Sneaky"},
-		map[string][]byte{"x.jpg": samplePhoto(t)}))
+// The bucket is public and the pull request costs API calls, so a submission
+// without the codeword must cost neither.
+func TestSubmitRequiresTheCodeword(t *testing.T) {
+	for _, tc := range []struct{ name, codeword string }{
+		{"missing", ""},
+		{"wrong", "notthecodeword"},
+		{"different case", strings.ToUpper(testCodeword)},
+		{"trailing space", testCodeword + " "},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			h, up, prs := testHandler()
+			rec := httptest.NewRecorder()
+			h.ServeHTTP(rec, formRequest(t,
+				map[string]string{"codeword": tc.codeword, "name": "Sneaky", "title": "Spam"},
+				map[string][]byte{"x.jpg": samplePhoto(t)}))
 
-	if rec.Code != http.StatusUnauthorized {
-		t.Errorf("status = %d, want 401", rec.Code)
-	}
-	if len(up.uploaded) != 0 {
-		t.Error("an unauthenticated submission uploaded a photo")
-	}
-	if prs.calls != 0 {
-		t.Error("an unauthenticated submission opened a pull request")
+			if rec.Code != http.StatusForbidden {
+				t.Errorf("status = %d, want 403", rec.Code)
+			}
+			if len(up.uploaded) != 0 {
+				t.Error("a submission without the codeword uploaded a photo")
+			}
+			if prs.calls != 0 {
+				t.Error("a submission without the codeword opened a pull request")
+			}
+		})
 	}
 }
 
 func TestSubmitValidation(t *testing.T) {
 	photo := samplePhoto(t)
+	// Every case carries a valid codeword, so what is being tested is the field
+	// validation rather than the gate in front of it.
+	fields := func(extra map[string]string) map[string]string {
+		f := map[string]string{"codeword": testCodeword, "name": "Riley P", "title": "Fine"}
+		for k, v := range extra {
+			f[k] = v
+		}
+		return f
+	}
 	for _, tc := range []struct {
 		name   string
 		fields map[string]string
 		photos map[string][]byte
 	}{
-		{"no title", map[string]string{"body": "x"}, map[string][]byte{"a.jpg": photo}},
-		{"no photos", map[string]string{"title": "Fine"}, nil},
-		{"title with no letters", map[string]string{"title": "!!!"}, map[string][]byte{"a.jpg": photo}},
-		{"title too long", map[string]string{"title": strings.Repeat("a", maxTitleRunes+1)}, map[string][]byte{"a.jpg": photo}},
-		{"body too long", map[string]string{"title": "Fine", "body": strings.Repeat("b", maxBodyRunes+1)}, map[string][]byte{"a.jpg": photo}},
-		{"not an image", map[string]string{"title": "Fine"}, map[string][]byte{"a.jpg": []byte("nope")}},
+		{"no name", fields(map[string]string{"name": ""}), map[string][]byte{"a.jpg": photo}},
+		{"name too long", fields(map[string]string{"name": strings.Repeat("n", maxNameRunes+1)}), map[string][]byte{"a.jpg": photo}},
+		{"no title", fields(map[string]string{"title": ""}), map[string][]byte{"a.jpg": photo}},
+		{"no photos", fields(nil), nil},
+		{"title with no letters", fields(map[string]string{"title": "!!!"}), map[string][]byte{"a.jpg": photo}},
+		{"title too long", fields(map[string]string{"title": strings.Repeat("a", maxTitleRunes+1)}), map[string][]byte{"a.jpg": photo}},
+		{"body too long", fields(map[string]string{"body": strings.Repeat("b", maxBodyRunes+1)}), map[string][]byte{"a.jpg": photo}},
+		{"not an image", fields(nil), map[string][]byte{"a.jpg": []byte("nope")}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			h, _, prs := testHandler(devMember{name: "Riley P"})
+			h, _, prs := testHandler()
 			rec := httptest.NewRecorder()
 			h.ServeHTTP(rec, formRequest(t, tc.fields, tc.photos))
 
@@ -193,18 +220,22 @@ func TestSubmitValidation(t *testing.T) {
 }
 
 // A photo that cannot be uploaded must stop the submission rather than produce
-// a pull request referencing a photo that is not there.
+// a pull request referencing a photo that is not there — and must not be
+// reported as a problem with the member's file, which it is not.
 func TestSubmitStopsWhenUploadFails(t *testing.T) {
-	h, up, prs := testHandler(devMember{name: "Riley P"})
+	h, up, prs := testHandler()
 	up.err = context.DeadlineExceeded
 
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, formRequest(t,
-		map[string]string{"title": "Shelf"},
+		map[string]string{"codeword": testCodeword, "name": "Riley P", "title": "Shelf"},
 		map[string][]byte{"a.jpg": samplePhoto(t)}))
 
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("status = %d, want 400", rec.Code)
+	if rec.Code != http.StatusBadGateway {
+		t.Errorf("status = %d, want 502 — the photo was fine, the bucket was not", rec.Code)
+	}
+	if strings.Contains(rec.Body.String(), "Could not accept") {
+		t.Errorf("blamed the member's file for a storage failure: %s", rec.Body)
 	}
 	if prs.calls != 0 {
 		t.Error("opened a pull request despite the upload failing")

@@ -23,7 +23,9 @@ docker build --target artifact \
 
 go test ./...                                     # the server's tests
 go run . -dir public                              # serve a rendered site, http://localhost:8080/
-go run . -dir public -dev-member 'Riley P'        # ...with submissions accepted as that member
+SUBMIT_CODEWORD=... GITHUB_CLIENT_ID=... \
+  GITHUB_PRIVATE_KEY="$(cat key.pem)" \
+  go run . -dir public                            # ...with submissions enabled
 docker build -t makespace . && \
   docker run -p 8080:8080 makespace               # render and serve, as deployed
 ```
@@ -119,18 +121,27 @@ The flow, and why each part is the way it is:
   names where the app is installed, and is the one the token endpoint needs. Only the first has to
   be configured.
 
-Runtime configuration, all Fly secrets: `GITHUB_CLIENT_ID` and
-`GITHUB_PRIVATE_KEY` (PEM, newlines intact), plus `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` for
-*write* access to the bucket. Optional overrides: `GITHUB_OWNER`, `GITHUB_REPO`,
-`GITHUB_BASE_BRANCH`, `BUCKET_NAME`, `AWS_ENDPOINT_URL_S3`. With the GitHub pair unset the server
-still serves the site and `/submit` answers 503.
+**The gate is a shared codeword, not authentication.** The form carries a `codeword` field, compared
+against `SUBMIT_CODEWORD` with `subtle.ConstantTimeCompare` before anything else is read — so a
+wrong one costs no uploads and no API calls, and answers 403. It keeps drive-by bots out and does
+nothing else: anyone holding it can submit under any name, so the `name` field that fills in
+`members` is a claim rather than a verified identity. Review of the pull request is what actually
+gates publication.
 
-**The identity check is not implemented, and submissions are refused because of it.**
-`Authenticator` (`auth.go`) is an interface whose only production implementation, `deniedAuth`,
-turns everyone away. app.makespace.org exposes no OAuth or OIDC endpoint — just its own `/log-in` —
-so there is nothing to verify a session against. Bridging it needs a change on the members' app
-side, either an OAuth2 authorization-code flow or a signed hand-off token with a shared secret. For
-local work, `-dev-member "Riley P"` accepts anyone as that member; never set it in production.
+The codeword lives in the environment because this repository is public; committing it would
+publish the thing it guards. Rotating it is `fly secrets set SUBMIT_CODEWORD=…`, which rolls the
+machines automatically.
+
+Runtime configuration, all Fly secrets: `GITHUB_CLIENT_ID`, `GITHUB_PRIVATE_KEY` (PEM, newlines
+intact), `SUBMIT_CODEWORD`, plus `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` for *write* access to
+the bucket. Optional overrides: `GITHUB_OWNER`, `GITHUB_REPO`, `GITHUB_BASE_BRANCH`, `BUCKET_NAME`,
+`AWS_ENDPOINT_URL_S3`. With any of the three required values unset the server still serves the site
+and `/submit` answers 503.
+
+Failures are split by whose problem they are: a file that is too large, not an image, or too many
+megapixels is 400 and names the file, because the member can fix it; a bucket that will not accept
+the upload is 502 and says to try again, because blaming their photo for a storage outage would send
+them off fixing the wrong thing.
 
 ## Photos live in object storage, not git
 

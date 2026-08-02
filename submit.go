@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/hex"
 	"fmt"
 	"html/template"
@@ -15,6 +16,7 @@ import (
 )
 
 const (
+	maxNameRunes  = 80
 	maxTitleRunes = 120
 	maxBodyRunes  = 5000
 	// Headroom over the photos themselves for the text fields and MIME overhead.
@@ -29,21 +31,19 @@ const (
 // submission that is never merged still leaves objects in a public bucket. They
 // are unreferenced and the bucket cannot be listed anonymously, but they are
 // not secret.
+//
+// The codeword is a shared secret typed into the form, not authentication: it
+// keeps drive-by bots out, and nothing more. Anyone who has it can submit as
+// any name, so the name in the front matter is a claim, not a verified identity
+// — which is why every submission still goes through review as a pull request.
 type submitHandler struct {
-	auth     Authenticator
+	codeword string
 	uploader Uploader
 	prs      PullRequestOpener
 	now      func() time.Time
 }
 
 func (h *submitHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	member, ok := h.auth.Member(r)
-	if !ok {
-		h.respond(w, r, http.StatusUnauthorized,
-			"Submissions are open to Makespace members. Sign in to the members' app first.", "")
-		return
-	}
-
 	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBytes)
 	if err := r.ParseMultipartForm(8 << 20); err != nil {
 		h.respond(w, r, http.StatusBadRequest, "That upload was too large or malformed.", "")
@@ -51,9 +51,24 @@ func (h *submitHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.MultipartForm.RemoveAll()
 
+	// Checked before anything is read from the form, so a wrong codeword costs
+	// no uploads and no API calls.
+	if subtle.ConstantTimeCompare([]byte(r.FormValue("codeword")), []byte(h.codeword)) != 1 {
+		h.respond(w, r, http.StatusForbidden,
+			"That codeword is not right. Ask in the space if you need it.", "")
+		return
+	}
+
+	name := strings.TrimSpace(r.FormValue("name"))
 	title := strings.TrimSpace(r.FormValue("title"))
 	body := strings.TrimSpace(r.FormValue("body"))
 	switch {
+	case name == "":
+		h.respond(w, r, http.StatusBadRequest, "Put your name on it.", "")
+		return
+	case len([]rune(name)) > maxNameRunes:
+		h.respond(w, r, http.StatusBadRequest, "That name is too long.", "")
+		return
 	case title == "":
 		h.respond(w, r, http.StatusBadRequest, "Give the make a title.", "")
 		return
@@ -84,20 +99,33 @@ func (h *submitHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	keys := make([]string, 0, len(files))
 	for _, fh := range files {
-		key, err := h.storePhoto(r, fh)
+		p, err := h.readPhoto(fh)
 		if err != nil {
-			log.Printf("submit: photo %q from %q: %v", fh.Filename, member.Name, err)
+			// Something about the file itself: the member can fix this.
+			log.Printf("submit: photo %q from %q: %v", fh.Filename, name, err)
 			h.respond(w, r, http.StatusBadRequest,
 				fmt.Sprintf("Could not accept %q: %s", fh.Filename, err), "")
+			return
+		}
+		// Content-addressed: the same photo uploaded twice is one object, and a
+		// key never points at different bytes later — which is what lets both the
+		// bucket and the site serve it as immutable.
+		sum := sha256.Sum256(p.data)
+		key := hex.EncodeToString(sum[:]) + p.ext
+		if err := h.uploader.Upload(r.Context(), key, p.contentType, p.data); err != nil {
+			// Nothing wrong with the photo, so do not tell the member there is.
+			log.Printf("submit: uploading %s for %q: %v", key, name, err)
+			h.respond(w, r, http.StatusBadGateway,
+				"The photos could not be stored just now. Try again in a minute.", "")
 			return
 		}
 		keys = append(keys, key)
 	}
 
 	path := "content/makes/" + slug + ".md"
-	markdown := buildMarkdown(title, body, member.Name, keys, h.now())
+	markdown := buildMarkdown(title, body, name, keys, h.now())
 	prTitle := "Add make: " + title
-	prBody := fmt.Sprintf("Submitted by %s through the form on the site.\n\nPhotos are already in the bucket, so this can be previewed by building the branch.", member.Name)
+	prBody := fmt.Sprintf("Submitted by %s through the form on the site.\n\nPhotos are already in the bucket, so this can be previewed by building the branch.", name)
 
 	url, err := h.prs.OpenPullRequest(r.Context(), path, markdown, prTitle, prBody)
 	if err != nil {
@@ -107,41 +135,31 @@ func (h *submitHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("submit: %q by %s -> %s", title, member.Name, url)
+	log.Printf("submit: %q by %s -> %s", title, name, url)
 	h.respond(w, r, http.StatusOK, "Thanks — your make is waiting for review.", url)
 }
 
-func (h *submitHandler) storePhoto(r *http.Request, fh *multipart.FileHeader) (string, error) {
+// readPhoto reads one uploaded file and normalises it. Every error it returns
+// is the member's to fix, which is what lets the caller answer 400 for these
+// and 502 for a failed upload.
+func (h *submitHandler) readPhoto(fh *multipart.FileHeader) (photo, error) {
 	if fh.Size > maxPhotoBytes {
-		return "", fmt.Errorf("it is larger than %d MB", maxPhotoBytes>>20)
+		return photo{}, fmt.Errorf("it is larger than %d MB", maxPhotoBytes>>20)
 	}
 	f, err := fh.Open()
 	if err != nil {
-		return "", err
+		return photo{}, err
 	}
 	defer f.Close()
 
 	raw, err := io.ReadAll(io.LimitReader(f, maxPhotoBytes+1))
 	if err != nil {
-		return "", err
+		return photo{}, err
 	}
 	if len(raw) > maxPhotoBytes {
-		return "", fmt.Errorf("it is larger than %d MB", maxPhotoBytes>>20)
+		return photo{}, fmt.Errorf("it is larger than %d MB", maxPhotoBytes>>20)
 	}
-
-	p, err := normalisePhoto(raw)
-	if err != nil {
-		return "", err
-	}
-	// Content-addressed: the same photo uploaded twice is one object, and a key
-	// never points at different bytes later — which is what lets both the bucket
-	// and the site serve it as immutable.
-	sum := sha256.Sum256(p.data)
-	key := hex.EncodeToString(sum[:]) + p.ext
-	if err := h.uploader.Upload(r.Context(), key, p.contentType, p.data); err != nil {
-		return "", err
-	}
-	return key, nil
+	return normalisePhoto(raw)
 }
 
 // buildMarkdown writes the front matter the makes section expects: title, date,

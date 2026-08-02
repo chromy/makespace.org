@@ -31,7 +31,6 @@ var fingerprinted = regexp.MustCompile(`(\.|_hu_)[0-9a-f]{16,}\.[a-z0-9]+$`)
 func main() {
 	addr := flag.String("addr", ":"+envOr("PORT", "8080"), "address to listen on")
 	dir := flag.String("dir", envOr("SITE_DIR", "public"), "directory holding the rendered site")
-	devMemberName := flag.String("dev-member", "", "accept submissions as this member, for local development only")
 	flag.Parse()
 
 	site := os.DirFS(*dir)
@@ -39,7 +38,7 @@ func main() {
 		log.Fatalf("no rendered site in %s (run hugo first): %v", *dir, err)
 	}
 
-	submit, err := newSubmitHandler(context.Background(), *devMemberName)
+	submit, err := newSubmitHandler(context.Background())
 	if err != nil {
 		log.Fatalf("configuring submissions: %v", err)
 	}
@@ -95,12 +94,15 @@ func newHandler(site fs.FS, submit http.Handler) http.Handler {
 // newSubmitHandler wires the submission route from the environment, and returns
 // nil when the GitHub App or bucket configuration is absent — a server with no
 // credentials still serves the site perfectly well.
-func newSubmitHandler(ctx context.Context, devMemberName string) (http.Handler, error) {
+func newSubmitHandler(ctx context.Context) (http.Handler, error) {
 	clientID := os.Getenv("GITHUB_CLIENT_ID")
 	privateKey := os.Getenv("GITHUB_PRIVATE_KEY")
+	// The codeword lives in the environment rather than the source because this
+	// repository is public — committing it would publish the thing it guards.
+	codeword := os.Getenv("SUBMIT_CODEWORD")
 	bucket := envOr("BUCKET_NAME", "makespace-site-content")
-	if clientID == "" || privateKey == "" {
-		log.Print("submissions disabled: GITHUB_CLIENT_ID and GITHUB_PRIVATE_KEY are not both set")
+	if clientID == "" || privateKey == "" || codeword == "" {
+		log.Print("submissions disabled: GITHUB_CLIENT_ID, GITHUB_PRIVATE_KEY and SUBMIT_CODEWORD are not all set")
 		return nil, nil
 	}
 
@@ -119,15 +121,7 @@ func newSubmitHandler(ctx context.Context, devMemberName string) (http.Handler, 
 		return nil, err
 	}
 
-	// Identity is the missing piece: without the members' app vouching for a
-	// request, deniedAuth turns every submission away.
-	var auth Authenticator = deniedAuth{}
-	if devMemberName != "" {
-		log.Printf("submissions accepting anyone as %q — development only", devMemberName)
-		auth = devMember{name: devMemberName}
-	}
-
-	return &submitHandler{auth: auth, uploader: uploader, prs: app, now: time.Now}, nil
+	return &submitHandler{codeword: codeword, uploader: uploader, prs: app, now: time.Now}, nil
 }
 
 func envOr(key, fallback string) string {
