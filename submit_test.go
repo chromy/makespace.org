@@ -253,8 +253,9 @@ func TestSubmitStopsWhenUploadFails(t *testing.T) {
 	}
 }
 
-// The photos form has no title: the post is identified by the day it happened,
-// with the first photo's hash making a second set from the same day distinct.
+// The photos form asks for neither a title nor a date: the post is named for
+// the day it was posted, and a hash of its first photo keeps two sets from the
+// same day apart.
 func TestSubmitPhotosOpensPullRequest(t *testing.T) {
 	h, up, prs := testHandler()
 	req := formRequest(t,
@@ -262,7 +263,6 @@ func TestSubmitPhotosOpensPullRequest(t *testing.T) {
 			"codeword": testCodeword,
 			"name":     "Ada L",
 			"license":  "cc-by-4.0",
-			"date":     "2026-07-14",
 			"body":     "A busy Tuesday.",
 		},
 		map[string][]byte{"one.jpg": samplePhoto(t)})
@@ -278,13 +278,15 @@ func TestSubmitPhotosOpensPullRequest(t *testing.T) {
 	for k := range up.uploaded {
 		key = k
 	}
-	if want := "content/photos/2026-07-14-" + key[:8] + ".md"; prs.path != want {
-		t.Errorf("path = %q, want %q", prs.path, want)
+	if !regexp.MustCompile(`^content/photos/2026-08-01-photos-[0-9a-f]{8}\.md$`).MatchString(prs.path) {
+		t.Errorf("path = %q, want content/photos/<today>-photos-<hash>.md", prs.path)
 	}
-	// The date is the member's, not the server's clock.
+	if !regexp.MustCompile(`^photos-[0-9a-f]{8}-001-[0-9a-f]{64}\.jpg$`).MatchString(key) {
+		t.Errorf("key = %q, want slug-001-<sha256>.jpg", key)
+	}
 	for _, want := range []string{
-		"title: '14 July 2026'",
-		"date: '2026-07-14T12:00:00Z'",
+		"title: '1 August 2026'",
+		"date: '2026-08-01T12:00:00Z'",
 		"- 'Ada L'",
 		"    license: 'cc-by-4.0'",
 		"        - '" + key + "'",
@@ -299,35 +301,61 @@ func TestSubmitPhotosOpensPullRequest(t *testing.T) {
 	}
 }
 
-// Notes are optional on the photos form; a date that is missing or unparseable
-// is not, since it names the file.
-func TestSubmitPhotosDate(t *testing.T) {
-	for _, tc := range []struct {
-		name, date string
-		wantStatus int
-	}{
-		{"missing", "", http.StatusBadRequest},
-		{"not a date", "sometime last week", http.StatusBadRequest},
-		{"wrong order", "14-07-2026", http.StatusBadRequest},
-		{"impossible day", "2026-02-31", http.StatusBadRequest},
-		{"valid", "2026-07-14", http.StatusOK},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			h, _, _ := testHandler()
-			rec := httptest.NewRecorder()
-			h.Photos(rec, formRequest(t,
-				map[string]string{
-					"codeword": testCodeword,
-					"name":     "Ada L",
-					"license":  "cc-by-4.0",
-					"date":     tc.date,
-				},
-				map[string][]byte{"one.jpg": samplePhoto(t)}))
+// The slug is optional on both forms. Given one it names the file, the URL and
+// every photo; left out it is derived.
+func TestSubmitSlugIsOptional(t *testing.T) {
+	photos := map[string][]byte{"one.jpg": samplePhoto(t)}
+	base := map[string]string{
+		"codeword": testCodeword,
+		"name":     "Ada L",
+		"license":  "cc-by-4.0",
+		"title":    "A Very Nice Shelf",
+	}
+	withSlug := map[string]string{}
+	for k, v := range base {
+		withSlug[k] = v
+	}
+	withSlug["slug"] = "Ada's Shelf!"
 
-			if rec.Code != tc.wantStatus {
-				t.Errorf("status = %d, want %d: %s", rec.Code, tc.wantStatus, rec.Body)
-			}
-		})
+	// A make, with the slug overriding the title-derived one — and slugged, so
+	// an apostrophe cannot reach the filename.
+	h, up, prs := testHandler()
+	rec := httptest.NewRecorder()
+	h.Make(rec, formRequest(t, withSlug, photos))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200: %s", rec.Code, rec.Body)
+	}
+	if prs.path != "content/makes/2026-08-01-adas-shelf.md" {
+		t.Errorf("path = %q, want the given slug", prs.path)
+	}
+	if !strings.Contains(prs.content, "slug: 'adas-shelf'") {
+		t.Errorf("front matter missing the slug:\n%s", prs.content)
+	}
+	for key := range up.uploaded {
+		if !strings.HasPrefix(key, "adas-shelf-001-") {
+			t.Errorf("photo key = %q, want it to start with the given slug", key)
+		}
+	}
+
+	// Photos, likewise: no slug means a derived one, a slug means that one.
+	h, up, prs = testHandler()
+	rec = httptest.NewRecorder()
+	h.Photos(rec, formRequest(t, map[string]string{
+		"codeword": testCodeword,
+		"name":     "Ada L",
+		"license":  "cc-by-4.0",
+		"slug":     "tuesday-tidy-up",
+	}, photos))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200: %s", rec.Code, rec.Body)
+	}
+	if prs.path != "content/photos/2026-08-01-tuesday-tidy-up.md" {
+		t.Errorf("path = %q, want the given slug", prs.path)
+	}
+	for key := range up.uploaded {
+		if !strings.HasPrefix(key, "tuesday-tidy-up-001-") {
+			t.Errorf("photo key = %q, want it to start with the given slug", key)
+		}
 	}
 }
 
@@ -338,7 +366,6 @@ func TestTitleIsOnlyRequiredForMakes(t *testing.T) {
 		"codeword": testCodeword,
 		"name":     "Ada L",
 		"license":  "cc-by-4.0",
-		"date":     "2026-07-14",
 	}
 	photos := map[string][]byte{"one.jpg": samplePhoto(t)}
 
@@ -365,6 +392,9 @@ func TestSlugify(t *testing.T) {
 		{"A Very Nice Shelf", "a-very-nice-shelf"},
 		{"  spaces  everywhere  ", "spaces-everywhere"},
 		{"Punctuation! Goes: away?", "punctuation-goes-away"},
+		// An apostrophe joins rather than separates.
+		{"Ada's Shelf", "adas-shelf"},
+		{"Ada’s Shelf", "adas-shelf"},
 		{"3D Printed Components", "3d-printed-components"},
 		{"!!!", ""},
 	} {

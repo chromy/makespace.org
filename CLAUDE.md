@@ -97,16 +97,20 @@ There are two forms, both plain HTML posting multipart to the Go server, which a
 rendered page either way so they work with JavaScript off. They share everything in `submit.go` —
 codeword, photo pipeline, pull request — and differ only in what identifies the post:
 
-| | route | page | writes to | identified by |
+| | route | page | writes to | slug defaults to |
 |---|---|---|---|---|
-| A project | `POST /submit` | `content/submit.md` → `submit.html` | `content/makes/<slug>.md` | its title |
-| Photos | `POST /submit/photos` | `content/add-photos.md` → `submit-photos.html` | `content/photos/<date>-<hash>.md` | the day it happened |
+| A project | `POST /submit` | `content/submit.md` → `submit-make.html` | `content/makes/` | the title |
+| Photos | `POST /submit/photos` | `content/add-photos.md` → `submit-photos.html` | `content/photos/` | `photos-<hash>` |
 
-Both carry author, licence and notes. The photos form has no title — the handler writes the day as
-the title (`14 July 2026`) — and takes the date from the member rather than the server clock, since
-photos are usually posted after the fact. Two sets from the same day would collide on the filename,
-so the first photo's hash is appended. `layouts/photos/single.html` renders the result; the section
-does not exist until something is merged into it.
+Both carry author, licence, notes and an **optional slug**. Files are named
+`YYYY-MM-DD-<slug>.md`, dated the day they were submitted so a directory listing reads
+chronologically; the front matter then sets `slug:` so that date does not also end up in the URL.
+
+The photos form asks for as little as possible: no title (the handler writes the date as the title,
+`1 August 2026`) and no date (it defaults to today, and a reviewer can correct the front matter in
+the pull request). With no slug given it is named after a hash of its first photo, which is what
+keeps two sets posted on the same day apart. `layouts/photos/single.html` renders the result; the
+section does not exist until something is merged into it.
 
 The flow, and why each part is the way it is:
 
@@ -115,9 +119,16 @@ The flow, and why each part is the way it is:
   orientation: phones store the sensor image unrotated and record the rotation in EXIF, so stripping
   the tag naively lays every portrait photo on its side. `applyOrientation` bakes the rotation into
   the pixels first. Re-encoding also proves the bytes really are an image before they get a URL.
-- **Keys are `sha256(bytes).jpg`.** The same photo twice is one object, and a key never points at
-  different bytes later — which is what justifies `immutable` caching on both the object and the
-  site's own responses.
+- **Keys are `<slug>-<NNN>-<sha256>.<ext>`** — `a-very-nice-shelf-001-<hash>.jpg` — so a bucket
+  listing says which post a photo belongs to and in what order it was attached. The hash is what
+  matters mechanically: a key never points at different bytes later, which is what justifies
+  `immutable` caching on both the object and the site's own responses. It costs the one thing a bare
+  content hash gave free, though — the same photo on two posts is now stored twice under two names.
+- **`go run . -upload -slug <slug> photo.jpg …`** puts photos in the bucket by hand and prints
+  pasteable front matter. It goes through the same `normalisePhoto` and `photoKey` as the form
+  rather than uploading the file as-is: uploading raw would publish the camera's EXIF, and would
+  produce a key the form would never generate for the same image.
+  `TestUploadFilesAgreesWithTheFormOnKeys` is what keeps those two paths honest.
 - **Photos are uploaded before the pull request exists.** A submission that is never merged still
   leaves objects in a public bucket. They are unreferenced and anonymous listing is denied, but they
   are not secret. This is inherent to serving photos from a public bucket at build time.
@@ -248,6 +259,18 @@ that no existing page follows — real makes carry only `title`, `date`, `draft`
   `height` attributes are computed from the resized resource; hardcoding a square squashes it. Note
   Hugo's `getresource` cache never expires, so a change in the branding repo is only picked up once
   that cache is dropped; `static/logo.webp` is now unreferenced but still published at `/logo.webp`.
+- **Every page carries its provenance**, from `_partials/pageinfo.html` in `baseof.html`: publication
+  date, last edited date, the subject and short hash of the last commit that touched it, and an
+  "Edit this page" link to GitHub. All of it comes from `enableGitInfo`, which has three
+  consequences worth knowing. The build needs `.git`, so `.dockerignore` no longer excludes it and
+  the `Dockerfile` copies it (plus `git config --global --add safe.directory`, since the repository
+  is owned by another user inside the image). CI needs `fetch-depth: 0`, because a shallow clone has
+  no per-file history and the footer would silently come out blank. And `[frontmatter] lastmod`
+  must list `:git`, or `.Lastmod` falls back to `.Date` and "last edited" can never differ from
+  publication. Pages with no file (taxonomy terms) and pages not yet committed render nothing rather
+  than an invented date.
+- All internal links use `RelPermalink`, never `Permalink`, so they follow whatever origin the site
+  is served from — `hugo server`, the Fly machine, or the domain when it moves.
 - `layouts/_markup/render-link.html` adds `rel="external"` to any absolute link in markdown.
 - Elements needing JavaScript get `class="needs-js"`; `_partials/head.html` hides them via a
   `<noscript>` style block. The only current user is the Web Share button in `makes/single.html`.

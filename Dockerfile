@@ -27,9 +27,16 @@ WORKDIR /project
 # Photos are not in the build context at all: Hugo fetches them from the public
 # bucket while rendering, so this step needs network access.
 COPY content/ ./content/
+COPY data/ ./data/
 COPY static/ ./static/
 COPY themes/ ./themes/
 COPY hugo.toml ./
+
+# enableGitInfo reads each page's last commit for the dates and the footer, so
+# the history has to be here — and git refuses to read a repository owned by a
+# different user than the one running it, which in this image it is.
+COPY .git/ ./.git/
+RUN git config --global --add safe.directory /project
 
 # HUGO_CACHEDIR is /cache in this image. The mount keeps both halves of the
 # expensive work across builds: the fetched originals under filecache/getresource

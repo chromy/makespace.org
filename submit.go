@@ -311,6 +311,9 @@ func slugify(title string) string {
 		case unicode.IsLetter(r) || unicode.IsDigit(r):
 			b.WriteRune(r)
 			lastDash = false
+		// An apostrophe joins a word rather than breaking it: Ada's Shelf is
+		// adas-shelf, not ada-s-shelf.
+		case r == '\'' || r == '’':
 		case !lastDash:
 			b.WriteRune('-')
 			lastDash = true

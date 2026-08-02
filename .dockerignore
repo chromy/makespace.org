@@ -1,4 +1,5 @@
-.git/
+# .git must reach the build: enableGitInfo reads the log for each page's last
+# commit, and the edit links and dates come from it.
 .github/
 public/
 resources/

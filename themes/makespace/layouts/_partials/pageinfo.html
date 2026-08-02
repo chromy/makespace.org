@@ -1,0 +1,44 @@
+{{- /*
+  The provenance of a page: when it went up, when it last changed, what the
+  change was, and a link to edit it.
+
+      {{ partial "pageinfo.html" . }}
+
+  @context {page} . The page to describe.
+
+  Everything here comes from git, through `enableGitInfo`, so it is blank in two
+  cases that are both normal: a page that has never been committed (a draft in
+  `hugo server`), and any page Hugo generates rather than reads from a file —
+  taxonomy terms, for instance. Both are guarded rather than defaulted, because
+  an invented date is worse than no date.
+*/ -}}
+{{- $repo := "https://github.com/chromy/makespace.org" }}
+{{- if or (not .Date.IsZero) .GitInfo .File }}
+<footer class="pageinfo">
+  <dl>
+    {{- if not .Date.IsZero }}
+    <dt>Published</dt>
+    <dd><time datetime="{{ .Date | time.Format "2006-01-02" }}">{{ .Date | time.Format ":date_long" }}</time></dd>
+    {{- end }}
+
+    {{- with .GitInfo }}
+      {{- /* Lastmod follows the commit date once git info is on, so it is only
+             worth showing when it differs from publication. */ -}}
+      {{- if ne ($.Lastmod | time.Format "2006-01-02") ($.Date | time.Format "2006-01-02") }}
+        <dt>Last edited</dt>
+        <dd><time datetime="{{ $.Lastmod | time.Format "2006-01-02" }}">{{ $.Lastmod | time.Format ":date_long" }}</time></dd>
+      {{- end }}
+
+      <dt>Last change</dt>
+      <dd>
+        <a href="{{ $repo }}/commit/{{ .Hash }}"><code>{{ .AbbreviatedHash }}</code></a>
+        {{ .Subject }}
+      </dd>
+    {{- end }}
+  </dl>
+
+  {{- with .File }}
+    <a class="edit-page" href="{{ $repo }}/edit/main/{{ .Path }}">Edit this page</a>
+  {{- end }}
+</footer>
+{{- end }}

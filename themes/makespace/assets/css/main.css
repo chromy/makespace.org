@@ -211,6 +211,21 @@ ul.byline > li:not(:first-child)::before {
   padding-right: 0.5rem;
 }
 
+/* Where a page came from -------------------------------------------------- */
+
+.pageinfo {
+  margin-top: calc(var(--space) * 3);
+  font-size: 0.9rem;
+}
+
+.pageinfo dt {
+  font-weight: bold;
+}
+
+.pageinfo dd {
+  margin: 0 0 0.5rem;
+}
+
 /* The submission form ----------------------------------------------------- */
 
 form.submit-make {

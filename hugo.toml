@@ -6,6 +6,17 @@ locale = "en-GB"
 title = "Makespace"
 theme = "makespace"
 
+# Gives every page its last commit — subject, hash and date — which the page
+# footer shows alongside an edit link. It means the build needs .git, and needs
+# full history rather than a shallow clone.
+enableGitInfo = true
+
+# Without this, .Lastmod falls back to .Date and the "last edited" line can
+# never differ from publication. `:git` makes it the date of the page's last
+# commit, which is what it should be.
+[frontmatter]
+  lastmod = ['lastmod', ':git', 'date', 'publishDate']
+
 # Photos are fetched from the public Tigris bucket at build time rather than
 # synced to disk first; see _partials/photo.html.
 [params]
