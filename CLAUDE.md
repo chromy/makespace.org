@@ -228,5 +228,15 @@ that no existing page follows — real makes carry only `title`, `date`, `draft`
   `<noscript>` style block. The only current user is the Web Share button in `makes/single.html`.
 - CSS is a single hand-written `themes/makespace/assets/css/main.css`, unfingerprinted in
   development and minified + SRI-fingerprinted in production via `_partials/head/css.html`.
+- **The stylesheet is intentionally almost empty**, so that a member who wants to style the site
+  properly has room to. It declares variables in `:root` — colours, font stack, `--space`,
+  `--sidebar` — and then only lays out what would be unusable without it: the page grid, the quilt,
+  the photo grid on a make, the form. There is no decoration at all: no shadows, rounded corners,
+  transitions, hover effects or font-size scale, and browser defaults are left to handle headings,
+  code and blockquotes. When adding to it, prefer a new variable to a hardcoded value, and prefer
+  restyling an element to inventing a class — the templates use nine classes in total. Two traps:
+  the two-column breakpoint is repeated as a literal in the `@media` query because CSS cannot use a
+  variable there, so it has to be changed in both places; and the markup carries no `.share-button`
+  class, so the rules that used to style it never applied to anything.
 
 `TODO.md` tracks the outstanding work on the site.

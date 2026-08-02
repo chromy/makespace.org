@@ -1,14 +1,52 @@
+/*
+ * The deliberately small stylesheet for makespace.org.
+ *
+ * This is a starting point for someone who wants to style the site properly,
+ * not a finished design. It does two things and stops:
+ *
+ *   1. Declares the variables below. Change those and the whole site changes,
+ *      without editing a single rule.
+ *   2. Lays out what would be unusable otherwise — the sidebar and page grid,
+ *      the photo quilt, the photo grid on a make, the submission form. Take
+ *      these as a floor to build on rather than as decisions to keep.
+ *
+ * There is deliberately no decoration: no shadows, no rounded corners, no
+ * transitions, no hover effects, no font-size scale. Browser defaults handle
+ * headings, blockquotes and code, and they are fine until someone decides
+ * otherwise. If you are adding to this file, prefer a new variable over a
+ * hardcoded value, and prefer changing an element's default to inventing a
+ * class — the templates use very few.
+ */
+
 :root {
-  --color-accent: rgb(232, 110, 44);
+  /* Colour. The accent is Makespace orange and is the one brand commitment
+     here; everything else is deliberately plain. */
   --color-foreground: #222;
   --color-background: #fffefe;
+  --color-accent: rgb(232, 110, 44);
+
+  /* Type. */
+  --font-body: Bahnschrift, 'DIN Alternate', 'Franklin Gothic Medium',
+               'Nimbus Sans Narrow', sans-serif-condensed, sans-serif;
+  --line-height: 1.5;
+
+  /* Rhythm and measure. --space is the unit every margin and padding here is
+     a multiple of; --sidebar is the width of the nav column on wide screens. */
+  --space: 1rem;
+  --sidebar: auto;
+
+  /* The width at which the layout becomes two columns. Note this cannot be a
+     variable in the media query itself — CSS does not allow that — so it is
+     repeated below, and the two must be changed together. */
+  --breakpoint: 768px;
 }
 
 * {
   box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
 }
@@ -16,217 +54,105 @@ html, body {
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);
-  font-family: Bahnschrift, 'DIN Alternate', 'Franklin Gothic Medium', 'Nimbus Sans Narrow', sans-serif-condensed, sans-serif;
-  font-weight: normal;
-  line-height: 1.5;
-}
-
-nav ul  {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  margin-left: 1rem;
-}
-
-nav details {
-  margin-bottom: 1rem;
-}
-
-nav summary {
-  cursor: pointer;
-  font-weight: bold;
-  font-size: 1rem;
-  margin-bottom: 0.3rem;
-  padding: 0.5rem;
-  background-color: var(--color-background);
-  border-radius: 4px;
-  transition: background-color 0.2s ease;
-}
-
-nav summary:hover {
-  background-color: rgba(232, 110, 44, 0.1);
-}
-
-nav details[open] summary {
-}
-
-nav details ul {
-  background-color: var(--color-background);
-  padding: 0.5rem 0;
-}
-
-nav details ul li {
-  padding: 0.25rem 1rem;
-}
-
-nav details ul li:hover {
-}
-
-.is-current-anchor {
-  font-weight: bold;
-  color: var(--color-accent);
-  background-color: rgba(232, 110, 44, 0.1);
-  padding: 0.25rem 0.5rem;
-  margin-left: -0.5rem;
-  border-radius: 4px;
-  text-decoration: none;
-}
-
-h1 {
-  font-size: 2rem
-}
-
-h2 {
-  margin-top: 3rem;
-  margin-bottom: 0.3rem;
-  font-size: 1rem;
-}
-
-h3 {
-  font-size: 0.5rem
-}
-
-h1, h2, strong {
-}
-
-code, pre {
-}
-
-code {
-  padding: 2px 4px;
-  vertical-align: text-bottom;
-}
-
-pre {
-  border-left: 2px solid #bbb;
-  padding: 1em;
+  font-family: var(--font-body);
+  line-height: var(--line-height);
 }
 
 a {
   color: var(--color-accent);
 }
 
-a[rel~="external"]::after {
-  content: " [ext]";
+/* render-link.html marks absolute links in markdown as external; this is what
+   makes that visible. */
+a[rel~='external']::after {
+  content: ' [ext]';
   font-size: smaller;
 }
 
-blockquote, q {
-  border-left: solid 4px #bbb;
-  font-style: italic;
-  margin: 0 0 2em 0;
-  padding: 0.5em 0 0.5em 2em;
+img {
+  max-width: 100%;
 }
 
-blockquote::before, blockquote::after, q::before, q::after {
-    content: '';
-    content: none;
-}
+/* Layout ------------------------------------------------------------------ */
 
 header {
   grid-area: header;
-  padding: 1rem;
+  padding: var(--space);
 }
 
 main {
-  padding: 2rem 1rem;
-  min-height: 100vh;
   grid-area: main;
+  padding: calc(var(--space) * 2) var(--space);
 }
 
 footer {
-  position: relative;
-  min-height: 20rem;
-  padding: 2rem;
-  font-size: larger;
   grid-area: footer;
+  padding: calc(var(--space) * 2);
 }
 
-footer::before {
-  box-shadow: black 0px -1px 4px 1px;
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  content: " ";
-  border-top: solid 1px var(--color-accent);
-  opacity: 0.3;
-  background-color: var(--color-accent);
-  background:
-    repeating-radial-gradient(circle at 0 0, transparent 0, var(--color-background) 10px),
-    repeating-linear-gradient(var(--color-accent), var(--color-foreground) );
+/* Below this width everything stacks in source order, which is already the
+   right reading order. Keep it that way. */
+@media (min-width: 768px) {
+  body {
+    display: grid;
+    grid-template-columns: var(--sidebar) 2fr;
+    grid-template-areas:
+      'header main'
+      'footer footer';
+  }
 }
 
+/* Navigation -------------------------------------------------------------- */
+
+nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0 var(--space);
+}
+
+nav details {
+  margin-bottom: var(--space);
+}
+
+nav summary {
+  cursor: pointer;
+}
+
+.is-current-anchor {
+  font-weight: bold;
+}
+
+/* Photos ------------------------------------------------------------------ */
+
+/* The home page quilt: tiles butted together with no gaps, six across. */
 .quilt {
-  display: grid
-;
+  display: grid;
   grid-auto-rows: auto;
   grid-template-columns: repeat(6, auto);
   justify-content: flex-start;
   gap: 0;
 }
-.quilt > * {
-  display: block;
-}
 
 .quilt img {
-  max-width: 100%;
+  display: block;
   height: 100%;
 }
 
+/* Photos on a make, as many per row as fit. */
 .make-photos {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
-.make-photo {
-  position: relative;
-  background: var(--color-background);
-  border-radius: 2px;
-  overflow: hidden;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  max-width: 50vw;
-}
-
-.make-photo:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+  gap: var(--space);
+  margin-top: var(--space);
 }
 
 .make-photo img {
+  display: block;
   width: 100%;
   height: auto;
-  display: block;
 }
 
-.share-button {
-  background: var(--color-accent);
-  color: var(--color-background);
-  border: none;
-  padding: 0.75rem 2rem;
-  font-size: 1rem;
-  font-weight: bold;
-  border-radius: 25px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.share-button:hover {
-  background: rgba(232, 110, 44, 0.9);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
-
-.share-button:active {
-  transform: translateY(0);
-}
-
+/* The byline reads as one line: date, then members, separated by dashes. */
 ul.byline {
   list-style: none;
   padding: 0;
@@ -235,30 +161,16 @@ ul.byline {
 
 ul.byline > li {
   display: inline-block;
-  padding: 0;
+  padding: 0 0.5rem 0 0;
   margin: 0;
-  padding-right: 0.5rem;
 }
 
 ul.byline > li:not(:first-child)::before {
-  content: "–";
+  content: '–';
   padding-right: 0.5rem;
 }
 
-
-
-@media (min-width: 768px) {
-  body {
-      display: grid;
-      grid-template-columns: auto 2fr;
-      grid-template-rows: 1fr auto;
-      grid-template-areas:
-          "header main"
-          "footer footer";
-  }
-}
-
-
+/* The submission form ----------------------------------------------------- */
 
 form.submit-make {
   display: flex;
@@ -267,24 +179,22 @@ form.submit-make {
 }
 
 form.submit-make label {
-  margin-top: 1rem;
+  margin-top: var(--space);
   font-weight: bold;
 }
 
-form.submit-make input[type="text"],
-form.submit-make textarea {
-  padding: 0.4rem;
+form.submit-make input[type='text'],
+form.submit-make textarea,
+form.submit-make select {
   font: inherit;
 }
 
 form.submit-make .field-help {
-  margin: 0.4rem 0 0;
-  font-size: 0.9rem;
+  margin: 0.25rem 0 0;
 }
 
 form.submit-make button {
-  margin-top: 1.5rem;
-  padding: 0.6rem;
+  margin-top: calc(var(--space) * 1.5);
   font: inherit;
   align-self: flex-start;
 }

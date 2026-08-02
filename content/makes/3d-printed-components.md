@@ -3,7 +3,7 @@ title: '3D Printed Components'
 date: '2025-10-12T12:14:56+01:00'
 draft: false
 members:
-    - Riley P
+    - Ada L
 params:
     images:
         - "15680933235.jpg"

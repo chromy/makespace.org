@@ -101,7 +101,7 @@ func TestSubmitOpensPullRequest(t *testing.T) {
 	req := formRequest(t,
 		map[string]string{
 			"codeword": testCodeword,
-			"name":     "Riley P",
+			"name":     "Ada L",
 			"license":  "cc-by-sa-4.0",
 			"title":    "A Very Nice Shelf",
 			"body":     "Made from offcuts.",
@@ -143,7 +143,7 @@ func TestSubmitOpensPullRequest(t *testing.T) {
 		"title: 'A Very Nice Shelf'",
 		"date: '2026-08-01T12:00:00Z'",
 		"draft: false",
-		"- 'Riley P'",
+		"- 'Ada L'",
 		"    license: 'cc-by-sa-4.0'",
 		"        - '" + key + "'",
 		"Made from offcuts.",
@@ -188,7 +188,7 @@ func TestSubmitValidation(t *testing.T) {
 	// Every case carries a valid codeword, so what is being tested is the field
 	// validation rather than the gate in front of it.
 	fields := func(extra map[string]string) map[string]string {
-		f := map[string]string{"codeword": testCodeword, "name": "Riley P", "title": "Fine", "license": "cc-by-sa-4.0"}
+		f := map[string]string{"codeword": testCodeword, "name": "Ada L", "title": "Fine", "license": "cc-by-sa-4.0"}
 		for k, v := range extra {
 			f[k] = v
 		}
@@ -235,7 +235,7 @@ func TestSubmitStopsWhenUploadFails(t *testing.T) {
 
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, formRequest(t,
-		map[string]string{"codeword": testCodeword, "name": "Riley P", "title": "Shelf", "license": "cc-by-sa-4.0"},
+		map[string]string{"codeword": testCodeword, "name": "Ada L", "title": "Shelf", "license": "cc-by-sa-4.0"},
 		map[string][]byte{"a.jpg": samplePhoto(t)}))
 
 	if rec.Code != http.StatusBadGateway {
@@ -265,8 +265,8 @@ func TestSlugify(t *testing.T) {
 
 func TestYAMLStringEscapes(t *testing.T) {
 	// A title containing a quote must not break out of the front matter.
-	got := buildMarkdown("Riley's \"Best\" Shelf", "", "Riley P", "cc-by-4.0", []string{"a.jpg"}, time.Unix(0, 0).UTC())
-	if !strings.Contains(got, "title: 'Riley''s \"Best\" Shelf'") {
+	got := buildMarkdown("Ada's \"Best\" Shelf", "", "Ada L", "cc-by-4.0", []string{"a.jpg"}, time.Unix(0, 0).UTC())
+	if !strings.Contains(got, "title: 'Ada''s \"Best\" Shelf'") {
 		t.Errorf("quote not escaped:\n%s", got)
 	}
 }

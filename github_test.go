@@ -142,7 +142,7 @@ func TestOpenPullRequestCallSequence(t *testing.T) {
 	app, _ := testApp(t, fake)
 
 	url, err := app.OpenPullRequest(context.Background(),
-		"content/makes/a-shelf.md", "---\ntitle: 'A Shelf'\n---\n", "Add make: A Shelf", "Submitted by Riley P")
+		"content/makes/a-shelf.md", "---\ntitle: 'A Shelf'\n---\n", "Add make: A Shelf", "Submitted by Ada L")
 	if err != nil {
 		t.Fatalf("OpenPullRequest: %v", err)
 	}
