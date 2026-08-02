@@ -62,24 +62,47 @@ type submitHandler struct {
 	now      func() time.Time
 }
 
-// The site takes two kinds of submission, which differ only in what identifies
-// the post. A make is a project and is named by its title; a photo post is a
-// few pictures from a particular day and is named by its date.
+// The site takes three kinds of submission. A make is a project, named by its
+// title. A photo post is a few pictures from a day, named by its date. A
+// writeup is an account of an event, named by its title — and unlike the other
+// two it is the words that matter, so photos are optional and the body is not.
 type submitKind int
 
 const (
 	kindMake submitKind = iota
 	kindPhotos
+	kindWriteup
 )
+
+// sections is where each kind's pages live.
+var sections = map[submitKind]string{
+	kindMake:    "makes",
+	kindPhotos:  "photos",
+	kindWriteup: "writeups",
+}
+
+// nouns is how each kind refers to itself in a pull request title and in the
+// messages the member sees. Not derived from the section name: "photos" is
+// already plural, and trimming an s off it reads wrong.
+var nouns = map[submitKind]string{
+	kindMake:    "make",
+	kindPhotos:  "photos",
+	kindWriteup: "writeup",
+}
 
 // Make handles POST /submit — a project, with a title.
 func (h *submitHandler) Make(w http.ResponseWriter, r *http.Request) {
 	h.handle(w, r, kindMake)
 }
 
-// Photos handles POST /submit/photos — pictures with a date and some notes.
+// Photos handles POST /submit/photos — pictures with some notes.
 func (h *submitHandler) Photos(w http.ResponseWriter, r *http.Request) {
 	h.handle(w, r, kindPhotos)
+}
+
+// Writeup handles POST /submit/writeup — an account of an event.
+func (h *submitHandler) Writeup(w http.ResponseWriter, r *http.Request) {
+	h.handle(w, r, kindWriteup)
 }
 
 func (h *submitHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -131,18 +154,26 @@ func (h *submitHandler) handle(w http.ResponseWriter, r *http.Request, kind subm
 		return
 	}
 
-	// What identifies the post when no slug is given: a title for a make, the
-	// day it happened for a set of photos.
-	section := "makes"
+	// What identifies the post when no slug is given: a title for a make or a
+	// writeup, the day it happened for a set of photos.
+	section := sections[kind]
 	date := h.now()
 	switch kind {
-	case kindMake:
+	case kindMake, kindWriteup:
+		noun := "make"
+		if kind == kindWriteup {
+			noun = "writeup"
+		}
 		switch {
 		case title == "":
-			h.respond(w, r, http.StatusBadRequest, "Give the make a title.", "")
+			h.respond(w, r, http.StatusBadRequest, "Give the "+noun+" a title.", "")
 			return
 		case len([]rune(title)) > maxTitleRunes:
 			h.respond(w, r, http.StatusBadRequest, "That title is too long.", "")
+			return
+		case kind == kindWriteup && body == "":
+			// The point of a writeup is the writing.
+			h.respond(w, r, http.StatusBadRequest, "Write something about the event.", "")
 			return
 		}
 		if slug == "" {
@@ -154,7 +185,6 @@ func (h *submitHandler) handle(w http.ResponseWriter, r *http.Request, kind subm
 		}
 
 	case kindPhotos:
-		section = "photos"
 		// The form does not ask when the photos were taken — one fewer field to
 		// fill in, and the answer is nearly always "today". The front matter
 		// still carries a date so a reviewer can correct it in the pull request
@@ -163,7 +193,9 @@ func (h *submitHandler) handle(w http.ResponseWriter, r *http.Request, kind subm
 	}
 
 	files := r.MultipartForm.File["photos"]
-	if len(files) == 0 {
+	// A writeup can stand on its own words; the other two are photo posts by
+	// definition.
+	if len(files) == 0 && kind != kindWriteup {
 		h.respond(w, r, http.StatusBadRequest, "Add at least one photo.", "")
 		return
 	}
@@ -214,7 +246,7 @@ func (h *submitHandler) handle(w http.ResponseWriter, r *http.Request, kind subm
 	path := fmt.Sprintf("content/%s/%s-%s.md", section, h.now().Format(dateLayout), slug)
 
 	markdown := buildMarkdown(title, slug, body, name, licence, keys, date)
-	prTitle := "Add " + map[submitKind]string{kindMake: "make: ", kindPhotos: "photos: "}[kind] + title
+	prTitle := fmt.Sprintf("Add %s: %s", nouns[kind], title)
 	prBody := fmt.Sprintf("Submitted by %s through the form on the site.\n\nPhotos are already in the bucket, so this can be previewed by building the branch.", name)
 
 	url, err := h.prs.OpenPullRequest(r.Context(), path, markdown, prTitle, prBody)
@@ -286,9 +318,13 @@ func buildMarkdown(title, slug, body, member, licence string, photos []string, n
 	fmt.Fprintf(&b, "    - %s\n", yamlString(member))
 	b.WriteString("params:\n")
 	fmt.Fprintf(&b, "    license: %s\n", yamlString(licence))
-	b.WriteString("    images:\n")
-	for _, p := range photos {
-		fmt.Fprintf(&b, "        - %s\n", yamlString(p))
+	// A writeup may have no photos at all, and an empty images list would make
+	// the templates iterate over nothing to no purpose.
+	if len(photos) > 0 {
+		b.WriteString("    images:\n")
+		for _, p := range photos {
+			fmt.Fprintf(&b, "        - %s\n", yamlString(p))
+		}
 	}
 	b.WriteString("---\n")
 	if body != "" {

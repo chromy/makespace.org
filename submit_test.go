@@ -301,6 +301,101 @@ func TestSubmitPhotosOpensPullRequest(t *testing.T) {
 	}
 }
 
+// A writeup is the one kind where the words are the point: the body is required
+// and photos are not.
+func TestSubmitWriteup(t *testing.T) {
+	base := map[string]string{
+		"codeword": testCodeword,
+		"name":     "Ada L",
+		"license":  "cc-by-sa-4.0",
+		"title":    "Bike Maintenance Workshop",
+		"body":     "Eight people came. We fixed six bikes and broke one.",
+	}
+
+	t.Run("no photos needed", func(t *testing.T) {
+		h, up, prs := testHandler()
+		rec := httptest.NewRecorder()
+		h.Writeup(rec, formRequest(t, base, nil))
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("status = %d, want 200: %s", rec.Code, rec.Body)
+		}
+		if len(up.uploaded) != 0 {
+			t.Errorf("uploaded %v, want nothing", keysOf(up))
+		}
+		if prs.path != "content/writeups/2026-08-01-bike-maintenance-workshop.md" {
+			t.Errorf("path = %q, want the dated writeups path", prs.path)
+		}
+		if !strings.HasPrefix(prs.title, "Add writeup: ") {
+			t.Errorf("pull request title = %q, want it to say writeup", prs.title)
+		}
+		// An empty images list would make the templates loop over nothing.
+		if strings.Contains(prs.content, "images:") {
+			t.Errorf("front matter has an images list with no photos:\n%s", prs.content)
+		}
+		for _, want := range []string{
+			"title: 'Bike Maintenance Workshop'",
+			"slug: 'bike-maintenance-workshop'",
+			"    license: 'cc-by-sa-4.0'",
+			"We fixed six bikes",
+		} {
+			if !strings.Contains(prs.content, want) {
+				t.Errorf("markdown missing %q:\n%s", want, prs.content)
+			}
+		}
+	})
+
+	t.Run("photos still allowed", func(t *testing.T) {
+		h, up, prs := testHandler()
+		rec := httptest.NewRecorder()
+		h.Writeup(rec, formRequest(t, base, map[string][]byte{"one.jpg": samplePhoto(t)}))
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("status = %d, want 200: %s", rec.Code, rec.Body)
+		}
+		for key := range up.uploaded {
+			if !strings.HasPrefix(key, "bike-maintenance-workshop-001-") {
+				t.Errorf("photo key = %q, want the writeup's slug", key)
+			}
+		}
+		if !strings.Contains(prs.content, "images:") {
+			t.Errorf("front matter is missing the photo:\n%s", prs.content)
+		}
+	})
+
+	t.Run("body is required", func(t *testing.T) {
+		fields := map[string]string{}
+		for k, v := range base {
+			fields[k] = v
+		}
+		fields["body"] = ""
+
+		h, _, prs := testHandler()
+		rec := httptest.NewRecorder()
+		h.Writeup(rec, formRequest(t, fields, nil))
+
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("status = %d, want 400", rec.Code)
+		}
+		if prs.calls != 0 {
+			t.Error("an empty writeup opened a pull request")
+		}
+	})
+
+	t.Run("a make with no photos is still refused", func(t *testing.T) {
+		h, _, prs := testHandler()
+		rec := httptest.NewRecorder()
+		h.Make(rec, formRequest(t, base, nil))
+
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("status = %d, want 400", rec.Code)
+		}
+		if prs.calls != 0 {
+			t.Error("a photoless make opened a pull request")
+		}
+	})
+}
+
 // The slug is optional on both forms. Given one it names the file, the URL and
 // every photo; left out it is derived.
 func TestSubmitSlugIsOptional(t *testing.T) {

@@ -1,0 +1,30 @@
+{{ define "main" }}
+  <h1>{{ .Title }}</h1>
+
+  {{ $dateMachine := .Date | time.Format "2006-01-02T15:04:05-07:00" }}
+  <ul class="byline">
+    <li><time datetime="{{ $dateMachine }}">{{ .Date | time.Format ":date_long" }}</time></li>
+    {{ range .Params.members }}
+    <li>{{ . }}</li>
+    {{ end }}
+  </ul>
+
+  {{/* The words come first here, unlike a make or a photo post: the photos are
+       illustration, and there may be none at all. */}}
+  {{ .Content }}
+
+  {{ with .Params.images }}
+    <div class="make-photos">
+      {{ range . }}
+        {{ with partial "photo.html" . }}
+        {{ $new := .Resize "1000x" }}
+        <div class="make-photo">
+          <img src="{{ $new.RelPermalink }}" width="{{ $new.Width }}" height="{{ $new.Height }}" alt="{{ $.Title }}" loading="lazy">
+        </div>
+        {{ end }}
+      {{ end }}
+    </div>
+  {{ end }}
+
+  {{ partial "license.html" . }}
+{{ end }}

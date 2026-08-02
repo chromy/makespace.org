@@ -9,24 +9,30 @@ rather than driven by site.Menus.
 
 {{- $page := . }}
 
-{{- $makesSection := site.GetPage "section" "makes" }}
 {{- $resourcesSection := site.GetPage "section" "resources" }}
 
   <nav>
+    {{/* One group per content section, in this order. A section with no
+         _index.md does not exist as far as Hugo is concerned, so `with` skips
+         it rather than rendering a heading that links nowhere. */}}
+    {{- range slice "makes" "photos" "writeups" }}
+      {{- with site.GetPage "section" . }}
     <details open>
-      <summary><a href="{{ $makesSection.RelPermalink }}">Makes</a></summary>
+      <summary><a href="{{ .RelPermalink }}">{{ .LinkTitle }}</a></summary>
       <ul>
-        {{ range $makesSection.Pages }}
+        {{ range .Pages }}
           <li><a href="{{ .RelPermalink }}"{{ if eq $page.RelPermalink .RelPermalink }} class="is-current-anchor"{{ end }}>{{ .Title }}</a></li>
         {{ end }}
       </ul>
     </details>
+      {{- end }}
+    {{- end }}
     <details open>
       {{/* Plain text rather than a link: there is no section page behind this
            group, and an anchor with an empty href is worse than no anchor. */}}
       <summary>Post something</summary>
       <ul>
-        {{ range slice "/submit" "/add-photos" }}
+        {{ range slice "/submit" "/add-photos" "/add-writeup" }}
           {{ with site.GetPage . }}
             <li><a href="{{ .RelPermalink }}"{{ if eq $page.RelPermalink .RelPermalink }} class="is-current-anchor"{{ end }}>{{ .Title }}</a></li>
           {{ end }}

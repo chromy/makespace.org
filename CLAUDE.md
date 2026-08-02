@@ -101,6 +101,7 @@ codeword, photo pipeline, pull request — and differ only in what identifies th
 |---|---|---|---|---|
 | A project | `POST /submit` | `content/submit.md` → `submit-make.html` | `content/makes/` | the title |
 | Photos | `POST /submit/photos` | `content/add-photos.md` → `submit-photos.html` | `content/photos/` | `photos-<hash>` |
+| A writeup | `POST /submit/writeup` | `content/add-writeup.md` → `submit-writeup.html` | `content/writeups/` | the title |
 
 Both carry author, licence, notes and an **optional slug**. Files are named
 `YYYY-MM-DD-<slug>.md`, dated the day they were submitted so a directory listing reads
@@ -109,8 +110,15 @@ chronologically; the front matter then sets `slug:` so that date does not also e
 The photos form asks for as little as possible: no title (the handler writes the date as the title,
 `1 August 2026`) and no date (it defaults to today, and a reviewer can correct the front matter in
 the pull request). With no slug given it is named after a hash of its first photo, which is what
-keeps two sets posted on the same day apart. `layouts/photos/single.html` renders the result; the
-section does not exist until something is merged into it.
+keeps two sets posted on the same day apart.
+
+A writeup is the one kind where the words are the point, so it inverts the other two: the body is
+required and photos are optional. With no photos the front matter omits `images` entirely rather
+than carrying an empty list, and `layouts/writeups/single.html` puts the text above the pictures
+rather than below.
+
+`layouts/photos/single.html` and `layouts/writeups/single.html` render the results; neither section
+exists until something is merged into it.
 
 The flow, and why each part is the way it is:
 
@@ -246,12 +254,15 @@ that no existing page follows — real makes carry only `title`, `date`, `draft`
 
 ## Theme structure worth knowing
 
-- `layouts/_partials/menu.html` does not use Hugo's menu system at all. It hardcodes three groups:
-  **Makes** (every page in that section), **Post something** (the submission form) and
-  **Resources** (the members' app and the Google Forms). Adding a nav entry means editing that
-  partial. "Post something" has a plain-text heading because no section page sits behind it;
-  "Resources" links to a `resources` section that does not exist in `content/`, so its `href`
-  renders empty — `site.GetPage` returns nil there and Hugo tolerates it silently.
+- `layouts/_partials/menu.html` does not use Hugo's menu system at all. It renders one group per
+  content section — **Makes**, **Photos**, **Writeups**, in that order, from a hardcoded list —
+  then **Post something** (the three submission forms) and **Resources** (the members' app and the
+  Google Forms). Adding a section to the nav means adding it to that list *and* giving it an
+  `_index.md`: the group is wrapped in `with site.GetPage`, and a section with no `_index.md` does
+  not exist as far as Hugo is concerned, so it is skipped rather than rendering a heading that links
+  nowhere. "Post something" has a plain-text heading because no section page sits behind it;
+  "Resources" links to a `resources` section that does not exist, so its `href` renders empty —
+  `site.GetPage` returns nil there and Hugo tolerates it silently.
 - The logo is **not** in this repository. `_partials/header.html` fetches it from
   `github.com/Makespace/Branding` (`params.logoURL`, a raw.githubusercontent.com URL on `master`)
   so there is one canonical copy. Unlike a photo, a logo that cannot be fetched fails the build.
@@ -268,7 +279,9 @@ that no existing page follows — real makes carry only `title`, `date`, `draft`
   no per-file history and the footer would silently come out blank. And `[frontmatter] lastmod`
   must list `:git`, or `.Lastmod` falls back to `.Date` and "last edited" can never differ from
   publication. Pages with no file (taxonomy terms) and pages not yet committed render nothing rather
-  than an invented date.
+  than an invented date. Note the whole build **fails** outside a git repository — `failed to load
+  Git data: fatal: not a git repository` — so the site cannot be built from a tarball while this is
+  on.
 - All internal links use `RelPermalink`, never `Permalink`, so they follow whatever origin the site
   is served from — `hugo server`, the Fly machine, or the domain when it moves.
 - `layouts/_markup/render-link.html` adds `rel="external"` to any absolute link in markdown.

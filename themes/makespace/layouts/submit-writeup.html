@@ -1,0 +1,49 @@
+{{ define "main" }}
+  <h1>{{ .Title }}</h1>
+
+  {{ .Content }}
+
+  {{/* Posts to /submit/writeup. The one form where the body is the point, so it
+       is required and photos are not. */}}
+  <form class="submit-make" method="post" action="/submit/writeup" enctype="multipart/form-data">
+    <label for="codeword">Codeword</label>
+    <input id="codeword" name="codeword" type="text" required autocomplete="off"
+           spellcheck="false" autocapitalize="none">
+    <p class="field-help">Ask in the space or on the members' app if you do not have it.</p>
+
+    <label for="name">Your name</label>
+    <input id="name" name="name" type="text" maxlength="80" required
+           placeholder="Ada L">
+
+    <label for="title">What was it?</label>
+    <input id="title" name="title" type="text" maxlength="120" required
+           placeholder="Bike maintenance workshop">
+
+    <label for="slug">Short name</label>
+    <input id="slug" name="slug" type="text" maxlength="80"
+           placeholder="bike-maintenance-workshop" autocomplete="off" spellcheck="false">
+    <p class="field-help">Optional. Names the page's address and its photos. Left blank, it comes
+      from the title above.</p>
+
+    <label for="body">The writeup</label>
+    <textarea id="body" name="body" rows="12" maxlength="5000" required
+              placeholder="What happened, who came, what you would do differently."></textarea>
+    <p class="field-help">Markdown works here.</p>
+
+    <label for="license">Licence for this post</label>
+    <select id="license" name="license" required>
+      {{- range hugo.Data.licenses.license }}
+        <option value="{{ .id }}">{{ .name }} — {{ .summary }}</option>
+      {{- end }}
+    </select>
+    <p class="field-help">This covers the writeup and any photos on the page. It says nothing about
+      what the event was about.</p>
+
+    <label for="photos">Photos</label>
+    <input id="photos" name="photos" type="file" accept="image/jpeg,image/png" multiple>
+    <p class="field-help">Optional, up to 8, 20&nbsp;MB each, JPEG or PNG. Location data is removed
+      before anything is published.</p>
+
+    <button type="submit">Send for review</button>
+  </form>
+{{ end }}

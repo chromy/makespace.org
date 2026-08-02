@@ -95,9 +95,11 @@ func newHandler(site fs.FS, submit *submitHandler) http.Handler {
 		}
 		mux.HandleFunc("POST /submit", unconfigured)
 		mux.HandleFunc("POST /submit/photos", unconfigured)
+		mux.HandleFunc("POST /submit/writeup", unconfigured)
 	} else {
 		mux.HandleFunc("POST /submit", submit.Make)
 		mux.HandleFunc("POST /submit/photos", submit.Photos)
+		mux.HandleFunc("POST /submit/writeup", submit.Writeup)
 	}
 	// A GET pattern answers HEAD too; anything else gets a 405 from the mux.
 	mux.Handle("GET /", withCacheControl(withNotFoundPage(site, http.FileServerFS(site))))
