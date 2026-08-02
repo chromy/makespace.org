@@ -96,17 +96,16 @@ func newHandler(site fs.FS, submit http.Handler) http.Handler {
 // nil when the GitHub App or bucket configuration is absent — a server with no
 // credentials still serves the site perfectly well.
 func newSubmitHandler(ctx context.Context, devMemberName string) (http.Handler, error) {
-	appID := os.Getenv("GITHUB_APP_ID")
-	installationID := os.Getenv("GITHUB_INSTALLATION_ID")
+	clientID := os.Getenv("GITHUB_CLIENT_ID")
 	privateKey := os.Getenv("GITHUB_PRIVATE_KEY")
 	bucket := envOr("BUCKET_NAME", "makespace-site-content")
-	if appID == "" || installationID == "" || privateKey == "" {
-		log.Print("submissions disabled: GITHUB_APP_ID, GITHUB_INSTALLATION_ID and GITHUB_PRIVATE_KEY are not all set")
+	if clientID == "" || privateKey == "" {
+		log.Print("submissions disabled: GITHUB_CLIENT_ID and GITHUB_PRIVATE_KEY are not both set")
 		return nil, nil
 	}
 
 	app, err := newGitHubApp(
-		appID, installationID, privateKey,
+		clientID, privateKey,
 		envOr("GITHUB_OWNER", "chromy"),
 		envOr("GITHUB_REPO", "makespace.org"),
 		envOr("GITHUB_BASE_BRANCH", "main"),

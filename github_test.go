@@ -31,11 +31,12 @@ func testKeyPEM(t *testing.T) string {
 // fakeGitHub records the call sequence and answers the four endpoints the PR
 // flow uses.
 type fakeGitHub struct {
-	t          *testing.T
-	calls      []string
-	tokenCalls int
-	bodies     map[string]map[string]any
-	failOn     string
+	t                 *testing.T
+	calls             []string
+	tokenCalls        int
+	installationCalls int
+	bodies            map[string]map[string]any
+	failOn            string
 }
 
 func (f *fakeGitHub) handler() http.Handler {
@@ -60,6 +61,10 @@ func (f *fakeGitHub) handler() http.Handler {
 		}
 
 		switch {
+		case strings.HasSuffix(r.URL.Path, "/installation"):
+			f.installationCalls++
+			assertAppJWT(f.t, r.Header.Get("Authorization"))
+			json.NewEncoder(w).Encode(map[string]any{"id": 987654})
 		case strings.HasSuffix(r.URL.Path, "/access_tokens"):
 			f.tokenCalls++
 			assertAppJWT(f.t, r.Header.Get("Authorization"))
@@ -106,8 +111,9 @@ func assertAppJWT(t *testing.T, header string) {
 	if err := json.Unmarshal(claims, &got); err != nil {
 		t.Fatalf("parsing claims: %v", err)
 	}
-	if got.ISS != "12345" {
-		t.Errorf("iss = %q, want the app id", got.ISS)
+	// GitHub takes the client ID as the JWT issuer.
+	if got.ISS != "Iv23liQpEXAMPLE" {
+		t.Errorf("iss = %q, want the client id", got.ISS)
 	}
 	if got.IAT > time.Now().Unix() {
 		t.Error("iat is in the future; GitHub rejects that on clock skew")
@@ -123,7 +129,7 @@ func testApp(t *testing.T, fake *fakeGitHub) (*githubApp, *httptest.Server) {
 	srv := httptest.NewServer(fake.handler())
 	t.Cleanup(srv.Close)
 
-	app, err := newGitHubApp("12345", "42", testKeyPEM(t), "chromy", "makespace.org", "main")
+	app, err := newGitHubApp("Iv23liQpEXAMPLE", testKeyPEM(t), "chromy", "makespace.org", "main")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -145,7 +151,9 @@ func TestOpenPullRequestCallSequence(t *testing.T) {
 	}
 
 	want := []string{
-		"POST /app/installations/42/access_tokens",
+		// The installation is discovered from the repo rather than configured.
+		"GET /repos/chromy/makespace.org/installation",
+		"POST /app/installations/987654/access_tokens",
 		"GET /repos/chromy/makespace.org/git/ref/heads/main",
 		"POST /repos/chromy/makespace.org/git/refs",
 		"PUT /repos/chromy/makespace.org/contents/content/makes/a-shelf.md",
@@ -196,6 +204,26 @@ func TestInstallationTokenIsCached(t *testing.T) {
 	if fake.tokenCalls != 1 {
 		t.Errorf("minted %d tokens, want 1", fake.tokenCalls)
 	}
+	// The installation cannot change without the app being reinstalled, so one
+	// lookup per process is enough.
+	if fake.installationCalls != 1 {
+		t.Errorf("looked up the installation %d times, want 1", fake.installationCalls)
+	}
+}
+
+// A repo the app is not installed on must fail with something that points at
+// the cause rather than at a missing environment variable.
+func TestInstallationLookupFailureIsExplained(t *testing.T) {
+	fake := &fakeGitHub{t: t, failOn: "GET /repos/chromy/makespace.org/installation"}
+	app, _ := testApp(t, fake)
+
+	_, err := app.OpenPullRequest(context.Background(), "content/makes/x.md", "body", "t", "b")
+	if err == nil {
+		t.Fatal("OpenPullRequest succeeded without an installation")
+	}
+	if !strings.Contains(err.Error(), "is the app installed there?") {
+		t.Errorf("error = %v, want it to name the likely cause", err)
+	}
 }
 
 func TestOpenPullRequestSurfacesAPIErrors(t *testing.T) {
@@ -212,7 +240,7 @@ func TestOpenPullRequestSurfacesAPIErrors(t *testing.T) {
 }
 
 func TestParsePrivateKeyRejectsRubbish(t *testing.T) {
-	if _, err := newGitHubApp("1", "2", "not a pem", "o", "r", "main"); err == nil {
+	if _, err := newGitHubApp("Iv23liQpEXAMPLE", "not a pem", "o", "r", "main"); err == nil {
 		t.Error("newGitHubApp accepted a non-PEM key")
 	}
 }

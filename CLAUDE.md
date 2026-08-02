@@ -112,13 +112,18 @@ The flow, and why each part is the way it is:
 - **Identity is a GitHub App, not a PAT.** The server holds a private key and mints installation
   tokens that last an hour, scoped to this repo and revocable by uninstalling the app. The JWT is
   assembled by hand in `appJWT` — two base64 segments and an RS256 signature, no library.
+- **The installation ID is discovered, not configured.** `GET /repos/{owner}/{repo}/installation`
+  with the app JWT returns it, and it is cached for the life of the process. Three identifiers are
+  easy to confuse here: the *client ID* names the app and is what `iss` carries; the *app ID* is an
+  older numeric spelling of the same thing, which this server does not use; the *installation ID*
+  names where the app is installed, and is the one the token endpoint needs. Only the first has to
+  be configured.
 
-Runtime configuration, all Fly secrets: `GITHUB_APP_ID`, `GITHUB_INSTALLATION_ID`,
+Runtime configuration, all Fly secrets: `GITHUB_CLIENT_ID` and
 `GITHUB_PRIVATE_KEY` (PEM, newlines intact), plus `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` for
 *write* access to the bucket. Optional overrides: `GITHUB_OWNER`, `GITHUB_REPO`,
-`GITHUB_BASE_BRANCH`, `BUCKET_NAME`, `AWS_ENDPOINT_URL_S3`. With the GitHub trio unset the server
-still serves the site and `/submit` answers 503 — that is the state on GitHub Pages today, where
-there is no server at all and the form's POST simply 404s.
+`GITHUB_BASE_BRANCH`, `BUCKET_NAME`, `AWS_ENDPOINT_URL_S3`. With the GitHub pair unset the server
+still serves the site and `/submit` answers 503.
 
 **The identity check is not implemented, and submissions are refused because of it.**
 `Authenticator` (`auth.go`) is an interface whose only production implementation, `deniedAuth`,

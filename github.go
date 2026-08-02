@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -32,35 +33,35 @@ type PullRequestOpener interface {
 // account. The JWT is assembled here rather than pulled from a library — it is
 // two base64 segments and an RS256 signature.
 type githubApp struct {
-	appID          string
-	installationID string
-	key            *rsa.PrivateKey
-	owner          string
-	repo           string
-	base           string // branch pull requests target
+	// clientID identifies the app in the JWT's iss claim.
+	clientID string
+	key      *rsa.PrivateKey
+	owner    string
+	repo     string
+	base     string // branch pull requests target
 
 	api  string // overridable so tests can point at httptest
 	http *http.Client
 
-	mu       sync.Mutex
-	token    string
-	tokenExp time.Time
+	mu           sync.Mutex
+	installation string // discovered from the repo, then cached
+	token        string
+	tokenExp     time.Time
 }
 
-func newGitHubApp(appID, installationID, privateKeyPEM, owner, repo, base string) (*githubApp, error) {
+func newGitHubApp(clientID, privateKeyPEM, owner, repo, base string) (*githubApp, error) {
 	key, err := parsePrivateKey(privateKeyPEM)
 	if err != nil {
 		return nil, err
 	}
 	return &githubApp{
-		appID:          appID,
-		installationID: installationID,
-		key:            key,
-		owner:          owner,
-		repo:           repo,
-		base:           base,
-		api:            "https://api.github.com",
-		http:           &http.Client{Timeout: 30 * time.Second},
+		clientID: clientID,
+		key:      key,
+		owner:    owner,
+		repo:     repo,
+		base:     base,
+		api:      "https://api.github.com",
+		http:     &http.Client{Timeout: 30 * time.Second},
 	}, nil
 }
 
@@ -90,7 +91,7 @@ func (g *githubApp) appJWT(now time.Time) (string, error) {
 	claims, err := json.Marshal(map[string]any{
 		"iat": now.Add(-60 * time.Second).Unix(),
 		"exp": now.Add(9 * time.Minute).Unix(),
-		"iss": g.appID,
+		"iss": g.clientID,
 	})
 	if err != nil {
 		return "", err
@@ -106,6 +107,33 @@ func (g *githubApp) appJWT(now time.Time) (string, error) {
 
 func base64URL(b []byte) string { return base64.RawURLEncoding.EncodeToString(b) }
 
+// installationID asks which installation covers this repo, so the number never
+// has to be configured. It cannot change without the app being reinstalled, so
+// one lookup per process is enough.
+//
+// The caller holds g.mu.
+func (g *githubApp) installationID(ctx context.Context, assertion string) (string, error) {
+	if g.installation != "" {
+		return g.installation, nil
+	}
+	url := fmt.Sprintf("%s/repos/%s/%s/installation", g.api, g.owner, g.repo)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Authorization", "Bearer "+assertion)
+	setGitHubHeaders(req)
+
+	var out struct {
+		ID int64 `json:"id"`
+	}
+	if err := doJSON(g.http, req, &out); err != nil {
+		return "", fmt.Errorf("finding the installation on %s/%s (is the app installed there?): %w", g.owner, g.repo, err)
+	}
+	g.installation = strconv.FormatInt(out.ID, 10)
+	return g.installation, nil
+}
+
 // installationToken returns a cached token, refreshing it a minute before it
 // would expire.
 func (g *githubApp) installationToken(ctx context.Context) (string, error) {
@@ -119,7 +147,11 @@ func (g *githubApp) installationToken(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	url := fmt.Sprintf("%s/app/installations/%s/access_tokens", g.api, g.installationID)
+	installation, err := g.installationID(ctx, assertion)
+	if err != nil {
+		return "", err
+	}
+	url := fmt.Sprintf("%s/app/installations/%s/access_tokens", g.api, installation)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, nil)
 	if err != nil {
 		return "", err
