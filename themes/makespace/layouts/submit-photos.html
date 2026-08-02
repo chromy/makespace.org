@@ -5,7 +5,8 @@
 
   {{/* Posts to /submit/photos, which writes to content/photos/ rather than
        content/makes/. Same handler underneath, minus the title. */}}
-  <form class="submit-make" method="post" action="/submit/photos" enctype="multipart/form-data">
+  <form class="submit-make" method="post" action="/submit/photos" enctype="multipart/form-data"
+        data-dropzone data-max-photos="8" data-max-photo-mb="20">
     <label for="codeword">Codeword</label>
     <input id="codeword" name="codeword" type="text" required autocomplete="off"
            spellcheck="false" autocapitalize="none">
@@ -41,4 +42,6 @@
 
     <button type="submit">Send for review</button>
   </form>
+
+  {{ partial "dropzone.html" . }}
 {{ end }}

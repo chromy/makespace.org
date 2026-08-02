@@ -1,6 +1,17 @@
 {{ define "main" }}
   <h1>{{ .Title }}</h1>
   {{ .Content }}
+
+  {{/* Each section names the form that adds to it, in its own _index.md, so the
+       mapping lives beside the content rather than in a lookup table here. The
+       wording comes from the form page's title, which is what the nav shows
+       too, so the two cannot drift apart. */}}
+  {{ with .Params.submitPage }}
+    {{ with site.GetPage . }}
+      <p class="add-to-section"><a href="{{ .RelPermalink }}">{{ .Title }}</a></p>
+    {{ end }}
+  {{ end }}
+
   {{ range .Pages }}
     <h2><a href="{{ .RelPermalink }}">{{ .LinkTitle }}</a></h2>
     {{ .Summary }}

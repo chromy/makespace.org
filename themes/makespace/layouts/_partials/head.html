@@ -2,6 +2,10 @@
 <meta name="viewport" content="width=device-width">
 <title>{{ if .IsHome }}{{ site.Title }}{{ else }}{{ printf "%s | %s" .Title site.Title }}{{ end }}</title>
 {{ partialCached "head/css.html" . }}
+{{- /* Only the submission pages use Dropzone, so only they pay for its CSS. */}}
+{{- if hasPrefix (string .Layout) "submit" }}
+  {{ partialCached "head/dropzone-css.html" . }}
+{{- end }}
 <noscript>
   <style>
     .needs-js { display: none !important; }

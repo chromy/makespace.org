@@ -120,6 +120,23 @@ rather than below.
 `layouts/photos/single.html` and `layouts/writeups/single.html` render the results; neither section
 exists until something is merged into it.
 
+**The file inputs are enhanced with [Dropzone](https://www.dropzone.dev/), which never uploads
+anything.** It is used purely as a picker: `assets/js/dropzone-init.js` copies whatever it collects
+into the form's own `<input type="file">` and the form posts normally. Letting Dropzone POST for
+itself would mean a second submission path on the server, a second set of validation and a second
+response to render, for a drag-and-drop box. With scripting off none of it runs and the plain input
+is still there — which is why the input is hidden rather than removed, and why its `required`
+attribute is stripped when the enhancement takes over (a browser will not submit a form whose
+invalid field it cannot focus).
+
+Two things to know if you touch it. Dropzone's `addedfile` event fires *before* it decides whether
+it accepts the file, so `getAcceptedFiles()` is empty at that point — the script keeps its own list
+and drops entries again on `removedfile` and `error`. And the library is pinned to **6.0.0-beta.2**:
+that is what dropzone.dev documents and what npm's `latest` resolves to, but it has not been
+released since 2021. The stable line is 5.9.3. Both the script and its CSS are fetched at build time
+and served from this site, so visitors make no request to a CDN, and the CSS only loads on pages
+whose layout name starts with `submit`.
+
 The flow, and why each part is the way it is:
 
 - **Photos are re-encoded, never stored as sent** (`image.go`). That strips EXIF, which on a phone

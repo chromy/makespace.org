@@ -1,0 +1,17 @@
+{{- /*
+  Dropzone's own stylesheet, fetched at build time and served from this site so
+  visitors make no request to a CDN. Pulled in only on the submission pages —
+  see head.html — because nothing else uses it.
+*/ -}}
+{{- $url := "https://cdn.jsdelivr.net/npm/dropzone@6.0.0-beta.2/dist/dropzone.css" }}
+{{- with try (resources.GetRemote $url) }}
+  {{- with .Err }}
+    {{- errorf "fetching dropzone css from %s: %s" $url . }}
+  {{- else with .Value }}
+    {{- with . | minify | fingerprint }}
+      <link rel="stylesheet" href="{{ .RelPermalink }}" integrity="{{ .Data.Integrity }}" crossorigin="anonymous">
+    {{- end }}
+  {{- else }}
+    {{- errorf "no dropzone css at %s" $url }}
+  {{- end }}
+{{- end }}

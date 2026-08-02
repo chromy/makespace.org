@@ -1,0 +1,33 @@
+{{- /*
+  Progressive enhancement for the file input on the submission forms.
+
+      {{ partial "dropzone.html" . }}
+
+  Dropzone is used only as a picker. It never uploads anything itself: the files
+  it collects are copied into the page's real <input type="file">, and the form
+  posts exactly as it does without JavaScript. That keeps one submission path,
+  one set of validation, and one response to render — the alternative, letting
+  Dropzone POST on its own, would mean a second code path on the server and a
+  second way for it to go wrong.
+
+  With scripting off, none of this runs and the plain file input is still there.
+
+  The library is fetched at build time and served from this site, so a visitor
+  makes no request to a CDN. Note it is pinned to 6.0.0-beta.2 — that is what
+  dropzone.dev documents and what npm's `latest` points at, though it has not
+  been released since 2021.
+*/ -}}
+{{- $js := "" }}
+{{- $url := "https://cdn.jsdelivr.net/npm/dropzone@6.0.0-beta.2/dist/dropzone-min.js" }}
+{{- with try (resources.GetRemote $url) }}
+  {{- with .Err }}
+    {{- errorf "fetching dropzone from %s: %s" $url . }}
+  {{- else with .Value }}
+    {{- $js = . | fingerprint }}
+  {{- else }}
+    {{- errorf "no dropzone at %s" $url }}
+  {{- end }}
+{{- end }}
+<script src="{{ $js.RelPermalink }}" integrity="{{ $js.Data.Integrity }}"></script>
+{{- $init := resources.Get "js/dropzone-init.js" | js.Build (dict "minify" hugo.IsProduction) | fingerprint }}
+<script src="{{ $init.RelPermalink }}" integrity="{{ $init.Data.Integrity }}"></script>
