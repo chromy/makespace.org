@@ -1,6 +1,14 @@
-{{ $name := .Get "name" }}
-{{ with resources.Get $name }}
-{{ $new := .Resize "100x" }}
-<img src="{{ $new.RelPermalink }}" width="{{ $new.Width }}" height="{{ $new.Height }}"></img>
-{{ end }}
-hello!
+{{- /*
+  Embeds a bucket photo part-way through a page's markdown.
+
+      {{< image name="byte.png" >}}
+
+  Goes through _partials/photo.html like every other photo, so it resolves from
+  the bucket. It used to call resources.Get, which reads the local assets/
+  directory — that stopped being part of the build when photos moved to the
+  bucket, and only kept working on machines with a stale copy still on disk.
+*/ -}}
+{{- with partial "photo.html" (.Get "name") }}
+  {{- $new := .Resize "100x" }}
+  <img src="{{ $new.RelPermalink }}" width="{{ $new.Width }}" height="{{ $new.Height }}" alt="{{ $.Page.Title }}" loading="lazy">
+{{- end }}

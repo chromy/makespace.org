@@ -23,6 +23,23 @@ const (
 	maxRequestBytes = maxPhotos*maxPhotoBytes + (1 << 20)
 )
 
+// licences the form may send, which is exactly what data/licenses.toml offers.
+// An allowlist rather than a format check: the value is written into front
+// matter and rendered as a link, so it has to be one the site can name a URL
+// for. Adding a licence means adding it in both places.
+//
+// These cover the post — the words and photos on the page — not the object the
+// member made.
+var licences = map[string]bool{
+	"cc-by-sa-4.0":    true,
+	"cc-by-4.0":       true,
+	"cc-by-nc-sa-4.0": true,
+	"cc-by-nc-4.0":    true,
+	"cc-by-nd-4.0":    true,
+	"cc-by-nc-nd-4.0": true,
+	"cc0-1.0":         true,
+}
+
 // submitHandler takes a filled-in form and turns it into a pull request: the
 // photos go straight into the public bucket under content-addressed names, and
 // the markdown that references them goes to GitHub for review.
@@ -62,7 +79,11 @@ func (h *submitHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	name := strings.TrimSpace(r.FormValue("name"))
 	title := strings.TrimSpace(r.FormValue("title"))
 	body := strings.TrimSpace(r.FormValue("body"))
+	licence := strings.TrimSpace(r.FormValue("license"))
 	switch {
+	case !licences[licence]:
+		h.respond(w, r, http.StatusBadRequest, "Choose a licence for the post.", "")
+		return
 	case name == "":
 		h.respond(w, r, http.StatusBadRequest, "Put your name on it.", "")
 		return
@@ -123,7 +144,7 @@ func (h *submitHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	path := "content/makes/" + slug + ".md"
-	markdown := buildMarkdown(title, body, name, keys, h.now())
+	markdown := buildMarkdown(title, body, name, licence, keys, h.now())
 	prTitle := "Add make: " + title
 	prBody := fmt.Sprintf("Submitted by %s through the form on the site.\n\nPhotos are already in the bucket, so this can be previewed by building the branch.", name)
 
@@ -163,8 +184,9 @@ func (h *submitHandler) readPhoto(fh *multipart.FileHeader) (photo, error) {
 }
 
 // buildMarkdown writes the front matter the makes section expects: title, date,
-// draft, members and params.images, then the description as the body.
-func buildMarkdown(title, body, member string, photos []string, now time.Time) string {
+// draft, members, params.license and params.images, then the description as the
+// body.
+func buildMarkdown(title, body, member, licence string, photos []string, now time.Time) string {
 	var b strings.Builder
 	b.WriteString("---\n")
 	fmt.Fprintf(&b, "title: %s\n", yamlString(title))
@@ -172,7 +194,9 @@ func buildMarkdown(title, body, member string, photos []string, now time.Time) s
 	b.WriteString("draft: false\n")
 	b.WriteString("members:\n")
 	fmt.Fprintf(&b, "    - %s\n", yamlString(member))
-	b.WriteString("params:\n    images:\n")
+	b.WriteString("params:\n")
+	fmt.Fprintf(&b, "    license: %s\n", yamlString(licence))
+	b.WriteString("    images:\n")
 	for _, p := range photos {
 		fmt.Fprintf(&b, "        - %s\n", yamlString(p))
 	}

@@ -121,6 +121,18 @@ The flow, and why each part is the way it is:
   names where the app is installed, and is the one the token endpoint needs. Only the first has to
   be configured.
 
+**The licence is on the post, not the make.** The form offers a Creative Commons choice that covers
+the words and photos on the page — a physical object is not what a copyright licence applies to, and
+the form says so, because that is exactly what people get wrong. It lands in front matter as
+`params.license: 'cc-by-sa-4.0'` and renders through `_partials/license.html`.
+
+That list lives twice and has to stay in step: `data/licenses.toml` drives the form's options and
+the rendered link; `licences` in `submit.go` is the allowlist the server validates against, because
+the data file is not in the server image and an unvalidated id would be written straight into front
+matter. `TestOfferedLicencesAreAccepted` reads the TOML and fails if the two drift. Adding a licence
+means editing both. Pages written before the form existed carry no licence and render nothing, as
+does an id the data file does not know.
+
 **The gate is a shared codeword, not authentication.** The form carries a `codeword` field, compared
 against `SUBMIT_CODEWORD` with `subtle.ConstantTimeCompare` before anything else is read — so a
 wrong one costs no uploads and no API calls, and answers 403. It keeps drive-by bots out and does
@@ -156,6 +168,10 @@ Only the resized derivatives are published; originals never land in `public/`, s
 than it used to be. Fetched originals are cached in Hugo's `getresource` filecache under
 `:cacheDir`, which in the container is the same `/cache` mount the resized images use — so CI's
 cache dance covers downloads and encodes together.
+
+Three things go through `_partials/photo.html`: the home page quilt, the photo block and share
+button on a make, and the `{{< image name="..." >}}` shortcode for dropping a photo part-way
+through a page's markdown. Anything else that wants a bucket photo should use it too.
 
 The partial treats the two failure modes differently, and the distinction is the point:
 
@@ -200,6 +216,13 @@ that no existing page follows — real makes carry only `title`, `date`, `draft`
   to the members' app and Google Forms. Adding a nav entry means editing that partial. The "More"
   group's own heading links to a `more` section that does not exist in `content/`, so its `href`
   renders empty — `site.GetPage` returns nil there and Hugo tolerates it silently.
+- The logo is **not** in this repository. `_partials/header.html` fetches it from
+  `github.com/Makespace/Branding` (`params.logoURL`, a raw.githubusercontent.com URL on `master`)
+  so there is one canonical copy. Unlike a photo, a logo that cannot be fetched fails the build.
+  It is 2000×1413 — *not* square, unlike the `static/logo.webp` it replaced — so the `width` and
+  `height` attributes are computed from the resized resource; hardcoding a square squashes it. Note
+  Hugo's `getresource` cache never expires, so a change in the branding repo is only picked up once
+  that cache is dropped; `static/logo.webp` is now unreferenced but still published at `/logo.webp`.
 - `layouts/_markup/render-link.html` adds `rel="external"` to any absolute link in markdown.
 - Elements needing JavaScript get `class="needs-js"`; `_partials/head.html` hides them via a
   `<noscript>` style block. The only current user is the Web Share button in `makes/single.html`.

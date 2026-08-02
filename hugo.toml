@@ -7,6 +7,9 @@ theme = "makespace"
 # synced to disk first; see _partials/photo.html.
 [params]
   photoBaseURL = 'https://makespace-site-content.fly.storage.tigris.dev/'
+  # The logo is fetched from the branding repo at build time so this repository
+  # holds no second copy to drift. Note it is 2000x1413, not square.
+  logoURL = 'https://raw.githubusercontent.com/Makespace/Branding/master/Logos/makespace_logo.png'
 
 [caches]
   [caches.images]

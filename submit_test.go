@@ -8,6 +8,8 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -100,6 +102,7 @@ func TestSubmitOpensPullRequest(t *testing.T) {
 		map[string]string{
 			"codeword": testCodeword,
 			"name":     "Riley P",
+			"license":  "cc-by-sa-4.0",
 			"title":    "A Very Nice Shelf",
 			"body":     "Made from offcuts.",
 		},
@@ -141,6 +144,7 @@ func TestSubmitOpensPullRequest(t *testing.T) {
 		"date: '2026-08-01T12:00:00Z'",
 		"draft: false",
 		"- 'Riley P'",
+		"    license: 'cc-by-sa-4.0'",
 		"        - '" + key + "'",
 		"Made from offcuts.",
 	} {
@@ -184,7 +188,7 @@ func TestSubmitValidation(t *testing.T) {
 	// Every case carries a valid codeword, so what is being tested is the field
 	// validation rather than the gate in front of it.
 	fields := func(extra map[string]string) map[string]string {
-		f := map[string]string{"codeword": testCodeword, "name": "Riley P", "title": "Fine"}
+		f := map[string]string{"codeword": testCodeword, "name": "Riley P", "title": "Fine", "license": "cc-by-sa-4.0"}
 		for k, v := range extra {
 			f[k] = v
 		}
@@ -195,6 +199,9 @@ func TestSubmitValidation(t *testing.T) {
 		fields map[string]string
 		photos map[string][]byte
 	}{
+		{"no licence", fields(map[string]string{"license": ""}), map[string][]byte{"a.jpg": photo}},
+		{"licence not on the list", fields(map[string]string{"license": "wtfpl-2.0"}), map[string][]byte{"a.jpg": photo}},
+		{"licence with markup", fields(map[string]string{"license": "cc-by-4.0'\ninjected: yes"}), map[string][]byte{"a.jpg": photo}},
 		{"no name", fields(map[string]string{"name": ""}), map[string][]byte{"a.jpg": photo}},
 		{"name too long", fields(map[string]string{"name": strings.Repeat("n", maxNameRunes+1)}), map[string][]byte{"a.jpg": photo}},
 		{"no title", fields(map[string]string{"title": ""}), map[string][]byte{"a.jpg": photo}},
@@ -228,7 +235,7 @@ func TestSubmitStopsWhenUploadFails(t *testing.T) {
 
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, formRequest(t,
-		map[string]string{"codeword": testCodeword, "name": "Riley P", "title": "Shelf"},
+		map[string]string{"codeword": testCodeword, "name": "Riley P", "title": "Shelf", "license": "cc-by-sa-4.0"},
 		map[string][]byte{"a.jpg": samplePhoto(t)}))
 
 	if rec.Code != http.StatusBadGateway {
@@ -258,8 +265,31 @@ func TestSlugify(t *testing.T) {
 
 func TestYAMLStringEscapes(t *testing.T) {
 	// A title containing a quote must not break out of the front matter.
-	got := buildMarkdown("Riley's \"Best\" Shelf", "", "Riley P", []string{"a.jpg"}, time.Unix(0, 0).UTC())
+	got := buildMarkdown("Riley's \"Best\" Shelf", "", "Riley P", "cc-by-4.0", []string{"a.jpg"}, time.Unix(0, 0).UTC())
 	if !strings.Contains(got, "title: 'Riley''s \"Best\" Shelf'") {
 		t.Errorf("quote not escaped:\n%s", got)
+	}
+}
+
+// Every licence the form offers has to be one the server accepts, or a member
+// picks it from the list and is told it is invalid. data/licenses.toml is not
+// in the server image, so nothing but this test keeps the two in step.
+func TestOfferedLicencesAreAccepted(t *testing.T) {
+	raw, err := os.ReadFile("data/licenses.toml")
+	if err != nil {
+		t.Fatalf("reading the licence list: %v", err)
+	}
+
+	ids := regexp.MustCompile(`(?m)^\s*id\s*=\s*'([^']+)'`).FindAllStringSubmatch(string(raw), -1)
+	if len(ids) == 0 {
+		t.Fatal("found no licence ids in data/licenses.toml")
+	}
+	if len(ids) != len(licences) {
+		t.Errorf("the form offers %d licences but the server accepts %d", len(ids), len(licences))
+	}
+	for _, match := range ids {
+		if !licences[match[1]] {
+			t.Errorf("the form offers %q, which the server rejects", match[1])
+		}
 	}
 }

@@ -1,2 +1,23 @@
-<a href="{{ site.BaseURL }}" rel="home" aria-current="page"><img src="{{ "logo.webp" | absURL }}" width="75" height="75" alt="Makespace" decoding="async"></a>
+{{- /*
+  The logo is fetched from github.com/Makespace/Branding rather than copied into
+  this repository, so there is one canonical copy of it.
+
+  Unlike a photo, a missing logo fails the build: the site's own identity is not
+  something to degrade quietly past review.
+
+  It is 2000x1413, so the width and height attributes come from the resized
+  resource rather than being written by hand — hardcoding a square would squash
+  it. Resized to twice the display size, for the sake of dense screens.
+*/ -}}
+{{- $logo := false }}
+{{- with try (resources.GetRemote site.Params.logoURL) }}
+  {{- with .Err }}
+    {{- errorf "fetching the logo from %s: %s" site.Params.logoURL . }}
+  {{- else with .Value }}
+    {{- $logo = .Resize "150x webp" }}
+  {{- else }}
+    {{- errorf "no logo at %s" site.Params.logoURL }}
+  {{- end }}
+{{- end }}
+<a href="{{ site.BaseURL }}" rel="home" aria-current="page"><img src="{{ $logo.RelPermalink }}" width="{{ math.Div $logo.Width 2 }}" height="{{ math.Div $logo.Height 2 }}" alt="Makespace" decoding="async"></a>
 {{ partial "menu.html" . }}

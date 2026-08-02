@@ -1,0 +1,50 @@
+# The licences offered on the submission form, in the order they appear.
+#
+# These cover the post — the words and photos on the page — and not the thing
+# the member made. A physical object is not what copyright licences apply to.
+#
+# The ids are duplicated in submit.go, which validates against them: this file
+# is not in the server image, and the server must not write an arbitrary string
+# into front matter. Adding a licence means adding it in both places.
+
+[[license]]
+  id = 'cc-by-sa-4.0'
+  name = 'CC BY-SA 4.0'
+  url = 'https://creativecommons.org/licenses/by-sa/4.0/'
+  summary = 'Share and adapt, with credit, under the same licence.'
+
+[[license]]
+  id = 'cc-by-4.0'
+  name = 'CC BY 4.0'
+  url = 'https://creativecommons.org/licenses/by/4.0/'
+  summary = 'Share and adapt, with credit.'
+
+[[license]]
+  id = 'cc-by-nc-sa-4.0'
+  name = 'CC BY-NC-SA 4.0'
+  url = 'https://creativecommons.org/licenses/by-nc-sa/4.0/'
+  summary = 'Share and adapt for non-commercial use, with credit, under the same licence.'
+
+[[license]]
+  id = 'cc-by-nc-4.0'
+  name = 'CC BY-NC 4.0'
+  url = 'https://creativecommons.org/licenses/by-nc/4.0/'
+  summary = 'Share and adapt for non-commercial use, with credit.'
+
+[[license]]
+  id = 'cc-by-nd-4.0'
+  name = 'CC BY-ND 4.0'
+  url = 'https://creativecommons.org/licenses/by-nd/4.0/'
+  summary = 'Share as-is, with credit; no adaptations.'
+
+[[license]]
+  id = 'cc-by-nc-nd-4.0'
+  name = 'CC BY-NC-ND 4.0'
+  url = 'https://creativecommons.org/licenses/by-nc-nd/4.0/'
+  summary = 'Share as-is for non-commercial use, with credit; no adaptations.'
+
+[[license]]
+  id = 'cc0-1.0'
+  name = 'CC0 1.0'
+  url = 'https://creativecommons.org/publicdomain/zero/1.0/'
+  summary = 'No rights reserved: anyone may use it for anything.'

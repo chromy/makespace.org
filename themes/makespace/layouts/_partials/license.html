@@ -1,0 +1,20 @@
+{{- /*
+  Renders the licence a post carries, if it carries one.
+
+      {{ partial "license.html" . }}
+
+  @context {page} . The page whose params.license to render.
+
+  The id is looked up in data/licenses.toml rather than turned into a URL by
+  string surgery, so an id that is not offered renders nothing instead of
+  linking somewhere that does not exist. Pages written before the submission
+  form existed have no licence, and say nothing.
+*/ -}}
+{{- with .Params.license }}
+  {{- $id := . }}
+  {{- range where site.Data.licenses.license "id" $id }}
+    <p class="license">The words and photos on this page are licensed
+      <a rel="license external" href="{{ .url }}">{{ .name }}</a>. That covers the post, not the
+      thing it describes.</p>
+  {{- end }}
+{{- end }}

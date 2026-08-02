@@ -24,6 +24,17 @@
     <textarea id="body" name="body" rows="6" maxlength="5000"
               placeholder="A sentence or two about what you made and how."></textarea>
 
+    {{/* Options come from data/licenses.toml; submit.go validates the id it is
+         sent against the same list. */}}
+    <label for="license">Licence for this post</label>
+    <select id="license" name="license" required>
+      {{- range site.Data.licenses.license }}
+        <option value="{{ .id }}">{{ .name }} — {{ .summary }}</option>
+      {{- end }}
+    </select>
+    <p class="field-help">This covers the words and photos on the page, so others know what they
+      may do with them. It says nothing about the thing you made.</p>
+
     <label for="photos">Photos</label>
     <input id="photos" name="photos" type="file" accept="image/jpeg,image/png" multiple required>
     <p class="field-help">Up to 8 photos, 20&nbsp;MB each, JPEG or PNG. Location data is removed
