@@ -12,7 +12,7 @@
 */ -}}
 {{- with .Params.license }}
   {{- $id := . }}
-  {{- range where site.Data.licenses.license "id" $id }}
+  {{- range where hugo.Data.licenses.license "id" $id }}
     <p class="license">The words and photos on this page are licensed
       <a rel="license external" href="{{ .url }}">{{ .name }}</a>. That covers the post, not the
       thing it describes.</p>

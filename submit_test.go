@@ -249,6 +249,113 @@ func TestSubmitStopsWhenUploadFails(t *testing.T) {
 	}
 }
 
+// The photos form has no title: the post is identified by the day it happened,
+// with the first photo's hash making a second set from the same day distinct.
+func TestSubmitPhotosOpensPullRequest(t *testing.T) {
+	h, up, prs := testHandler()
+	req := formRequest(t,
+		map[string]string{
+			"codeword": testCodeword,
+			"name":     "Ada L",
+			"license":  "cc-by-4.0",
+			"date":     "2026-07-14",
+			"body":     "A busy Tuesday.",
+		},
+		map[string][]byte{"one.jpg": samplePhoto(t)})
+
+	rec := httptest.NewRecorder()
+	h.Photos(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200: %s", rec.Code, rec.Body)
+	}
+
+	var key string
+	for k := range up.uploaded {
+		key = k
+	}
+	if want := "content/photos/2026-07-14-" + key[:8] + ".md"; prs.path != want {
+		t.Errorf("path = %q, want %q", prs.path, want)
+	}
+	// The date is the member's, not the server's clock.
+	for _, want := range []string{
+		"title: '14 July 2026'",
+		"date: '2026-07-14T12:00:00Z'",
+		"- 'Ada L'",
+		"    license: 'cc-by-4.0'",
+		"        - '" + key + "'",
+		"A busy Tuesday.",
+	} {
+		if !strings.Contains(prs.content, want) {
+			t.Errorf("markdown missing %q:\n%s", want, prs.content)
+		}
+	}
+	if !strings.HasPrefix(prs.title, "Add photos: ") {
+		t.Errorf("pull request title = %q, want it to say photos", prs.title)
+	}
+}
+
+// Notes are optional on the photos form; a date that is missing or unparseable
+// is not, since it names the file.
+func TestSubmitPhotosDate(t *testing.T) {
+	for _, tc := range []struct {
+		name, date string
+		wantStatus int
+	}{
+		{"missing", "", http.StatusBadRequest},
+		{"not a date", "sometime last week", http.StatusBadRequest},
+		{"wrong order", "14-07-2026", http.StatusBadRequest},
+		{"impossible day", "2026-02-31", http.StatusBadRequest},
+		{"valid", "2026-07-14", http.StatusOK},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			h, _, _ := testHandler()
+			rec := httptest.NewRecorder()
+			h.Photos(rec, formRequest(t,
+				map[string]string{
+					"codeword": testCodeword,
+					"name":     "Ada L",
+					"license":  "cc-by-4.0",
+					"date":     tc.date,
+				},
+				map[string][]byte{"one.jpg": samplePhoto(t)}))
+
+			if rec.Code != tc.wantStatus {
+				t.Errorf("status = %d, want %d: %s", rec.Code, tc.wantStatus, rec.Body)
+			}
+		})
+	}
+}
+
+// A title is what distinguishes the two forms; the photos form must not need
+// one, and the makes form must still insist on it.
+func TestTitleIsOnlyRequiredForMakes(t *testing.T) {
+	fields := map[string]string{
+		"codeword": testCodeword,
+		"name":     "Ada L",
+		"license":  "cc-by-4.0",
+		"date":     "2026-07-14",
+	}
+	photos := map[string][]byte{"one.jpg": samplePhoto(t)}
+
+	h, _, _ := testHandler()
+	rec := httptest.NewRecorder()
+	h.Photos(rec, formRequest(t, fields, photos))
+	if rec.Code != http.StatusOK {
+		t.Errorf("photos without a title: status = %d, want 200", rec.Code)
+	}
+
+	h, _, prs := testHandler()
+	rec = httptest.NewRecorder()
+	h.Make(rec, formRequest(t, fields, photos))
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("make without a title: status = %d, want 400", rec.Code)
+	}
+	if prs.calls != 0 {
+		t.Error("a titleless make opened a pull request")
+	}
+}
+
 func TestSlugify(t *testing.T) {
 	for _, tc := range []struct{ in, want string }{
 		{"A Very Nice Shelf", "a-very-nice-shelf"},

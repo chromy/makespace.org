@@ -19,5 +19,5 @@
     {{- errorf "no logo at %s" site.Params.logoURL }}
   {{- end }}
 {{- end }}
-<a href="{{ site.BaseURL }}" rel="home" aria-current="page"><img src="{{ $logo.RelPermalink }}" width="{{ math.Div $logo.Width 2 }}" height="{{ math.Div $logo.Height 2 }}" alt="Makespace" decoding="async"></a>
+<a href="{{ site.Home.RelPermalink }}" rel="home" aria-current="page"><img src="{{ $logo.RelPermalink }}" width="{{ math.Div $logo.Width 2 }}" height="{{ math.Div $logo.Height 2 }}" alt="Makespace" decoding="async"></a>
 {{ partial "menu.html" . }}

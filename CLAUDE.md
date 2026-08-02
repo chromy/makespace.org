@@ -218,11 +218,11 @@ that no existing page follows — real makes carry only `title`, `date`, `draft`
 
 ## Theme structure worth knowing
 
-- `layouts/_partials/menu.html` does not use Hugo's menu system at all. It hardcodes two groups
-  (Makes / Resources), listing every page in the section plus external links
-  to the members' app and Google Forms. Adding a nav entry means editing that partial. The
-  "Resources" group's own heading links to a `resources` section that does not exist in `content/`,
-  so its `href`
+- `layouts/_partials/menu.html` does not use Hugo's menu system at all. It hardcodes three groups:
+  **Makes** (every page in that section), **Post something** (the submission form) and
+  **Resources** (the members' app and the Google Forms). Adding a nav entry means editing that
+  partial. "Post something" has a plain-text heading because no section page sits behind it;
+  "Resources" links to a `resources` section that does not exist in `content/`, so its `href`
   renders empty — `site.GetPage` returns nil there and Hugo tolerates it silently.
 - The logo is **not** in this repository. `_partials/header.html` fetches it from
   `github.com/Makespace/Branding` (`params.logoURL`, a raw.githubusercontent.com URL on `master`)

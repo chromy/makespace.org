@@ -12,7 +12,7 @@
     {{- end }}
     {{- with $image }}
       {{- $small := .Resize "300x" }}
-      <a href="{{ $page.Permalink }}"><img
+      <a href="{{ $page.RelPermalink }}"><img
           src="{{ $small.RelPermalink }}"
           width="{{ math.Div $small.Width 2}}"
           height="{{ math.Div $small.Height 2}}"></img></a>

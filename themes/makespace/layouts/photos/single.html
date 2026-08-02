@@ -1,0 +1,28 @@
+{{ define "main" }}
+  {{/* A photo post has no title of its own: the day it was taken is the title,
+       written by the submission handler. */}}
+  <h1>{{ .Title }}</h1>
+
+  {{ $dateMachine := .Date | time.Format "2006-01-02T15:04:05-07:00" }}
+  <ul class="byline">
+    <li><time datetime="{{ $dateMachine }}">{{ .Date | time.Format ":date_long" }}</time></li>
+    {{ range .Params.members }}
+    <li>{{ . }}</li>
+    {{ end }}
+  </ul>
+
+  <div class="make-photos">
+    {{ range .Params.images }}
+      {{ with partial "photo.html" . }}
+      {{ $new := .Resize "1000x" }}
+      <div class="make-photo">
+        <img src="{{ $new.RelPermalink }}" width="{{ $new.Width }}" height="{{ $new.Height }}" alt="{{ $.Title }}" loading="lazy">
+      </div>
+      {{ end }}
+    {{ end }}
+  </div>
+
+  {{ .Content }}
+
+  {{ partial "license.html" . }}
+{{ end }}

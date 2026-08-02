@@ -73,19 +73,23 @@ func main() {
 
 // newHandler routes everything Hugo rendered, plus the handlers that are not
 // files. A nil submit handler means submissions are not configured, and the
-// route says so rather than disappearing.
-func newHandler(site fs.FS, submit http.Handler) http.Handler {
+// routes say so rather than disappearing.
+func newHandler(site fs.FS, submit *submitHandler) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 		w.Write([]byte("ok\n"))
 	})
 	if submit == nil {
-		submit = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		unconfigured := func(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Submissions are not configured on this server.", http.StatusServiceUnavailable)
-		})
+		}
+		mux.HandleFunc("POST /submit", unconfigured)
+		mux.HandleFunc("POST /submit/photos", unconfigured)
+	} else {
+		mux.HandleFunc("POST /submit", submit.Make)
+		mux.HandleFunc("POST /submit/photos", submit.Photos)
 	}
-	mux.Handle("POST /submit", submit)
 	// A GET pattern answers HEAD too; anything else gets a 405 from the mux.
 	mux.Handle("GET /", withCacheControl(withNotFoundPage(site, http.FileServerFS(site))))
 	return mux
@@ -94,7 +98,7 @@ func newHandler(site fs.FS, submit http.Handler) http.Handler {
 // newSubmitHandler wires the submission route from the environment, and returns
 // nil when the GitHub App or bucket configuration is absent — a server with no
 // credentials still serves the site perfectly well.
-func newSubmitHandler(ctx context.Context) (http.Handler, error) {
+func newSubmitHandler(ctx context.Context) (*submitHandler, error) {
 	clientID := os.Getenv("GITHUB_CLIENT_ID")
 	privateKey := os.Getenv("GITHUB_PRIVATE_KEY")
 	// The codeword lives in the environment rather than the source because this

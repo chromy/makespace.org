@@ -19,6 +19,8 @@ const (
 	maxNameRunes  = 80
 	maxTitleRunes = 120
 	maxBodyRunes  = 5000
+	// The date field on the photos form: a plain day, as <input type="date"> sends it.
+	dateLayout = "2006-01-02"
 	// Headroom over the photos themselves for the text fields and MIME overhead.
 	maxRequestBytes = maxPhotos*maxPhotoBytes + (1 << 20)
 )
@@ -60,7 +62,31 @@ type submitHandler struct {
 	now      func() time.Time
 }
 
+// The site takes two kinds of submission, which differ only in what identifies
+// the post. A make is a project and is named by its title; a photo post is a
+// few pictures from a particular day and is named by its date.
+type submitKind int
+
+const (
+	kindMake submitKind = iota
+	kindPhotos
+)
+
+// Make handles POST /submit — a project, with a title.
+func (h *submitHandler) Make(w http.ResponseWriter, r *http.Request) {
+	h.handle(w, r, kindMake)
+}
+
+// Photos handles POST /submit/photos — pictures with a date and some notes.
+func (h *submitHandler) Photos(w http.ResponseWriter, r *http.Request) {
+	h.handle(w, r, kindPhotos)
+}
+
 func (h *submitHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	h.Make(w, r)
+}
+
+func (h *submitHandler) handle(w http.ResponseWriter, r *http.Request, kind submitKind) {
 	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBytes)
 	if err := r.ParseMultipartForm(8 << 20); err != nil {
 		h.respond(w, r, http.StatusBadRequest, "That upload was too large or malformed.", "")
@@ -90,21 +116,45 @@ func (h *submitHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case len([]rune(name)) > maxNameRunes:
 		h.respond(w, r, http.StatusBadRequest, "That name is too long.", "")
 		return
-	case title == "":
-		h.respond(w, r, http.StatusBadRequest, "Give the make a title.", "")
-		return
-	case len([]rune(title)) > maxTitleRunes:
-		h.respond(w, r, http.StatusBadRequest, "That title is too long.", "")
-		return
 	case len([]rune(body)) > maxBodyRunes:
-		h.respond(w, r, http.StatusBadRequest, "That description is too long.", "")
+		h.respond(w, r, http.StatusBadRequest, "Those notes are too long.", "")
 		return
 	}
 
-	slug := slugify(title)
-	if slug == "" {
-		h.respond(w, r, http.StatusBadRequest, "That title needs at least one letter or number.", "")
-		return
+	// What identifies the post, and therefore what its file is called: a title
+	// for a make, the day it happened for a set of photos.
+	var path string
+	date := h.now()
+	switch kind {
+	case kindMake:
+		switch {
+		case title == "":
+			h.respond(w, r, http.StatusBadRequest, "Give the make a title.", "")
+			return
+		case len([]rune(title)) > maxTitleRunes:
+			h.respond(w, r, http.StatusBadRequest, "That title is too long.", "")
+			return
+		}
+		slug := slugify(title)
+		if slug == "" {
+			h.respond(w, r, http.StatusBadRequest, "That title needs at least one letter or number.", "")
+			return
+		}
+		path = "content/makes/" + slug + ".md"
+
+	case kindPhotos:
+		// A date-only field, taken as midday so that no timezone shifts it onto
+		// the day before or after.
+		day, err := time.Parse(dateLayout, strings.TrimSpace(r.FormValue("date")))
+		if err != nil {
+			h.respond(w, r, http.StatusBadRequest, "Give the date the photos were taken.", "")
+			return
+		}
+		date = time.Date(day.Year(), day.Month(), day.Day(), 12, 0, 0, 0, time.UTC)
+		// Photos have no title of their own, so the page is named for its day.
+		// A second set from the same day would collide, hence the suffix, which
+		// is filled in once the first photo has been hashed.
+		title = date.Format("2 January 2006")
 	}
 
 	files := r.MultipartForm.File["photos"]
@@ -143,9 +193,14 @@ func (h *submitHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		keys = append(keys, key)
 	}
 
-	path := "content/makes/" + slug + ".md"
-	markdown := buildMarkdown(title, body, name, licence, keys, h.now())
-	prTitle := "Add make: " + title
+	if kind == kindPhotos {
+		// Now that the photos are hashed, the day can be made unique without
+		// asking the member to name anything.
+		path = fmt.Sprintf("content/photos/%s-%s.md", date.Format(dateLayout), keys[0][:8])
+	}
+
+	markdown := buildMarkdown(title, body, name, licence, keys, date)
+	prTitle := "Add " + map[submitKind]string{kindMake: "make: ", kindPhotos: "photos: "}[kind] + title
 	prBody := fmt.Sprintf("Submitted by %s through the form on the site.\n\nPhotos are already in the bucket, so this can be previewed by building the branch.", name)
 
 	url, err := h.prs.OpenPullRequest(r.Context(), path, markdown, prTitle, prBody)
