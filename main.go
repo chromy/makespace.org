@@ -123,8 +123,8 @@ func newSubmitHandler(ctx context.Context) (*submitHandler, error) {
 
 	app, err := newGitHubApp(
 		clientID, privateKey,
-		envOr("GITHUB_OWNER", "chromy"),
-		envOr("GITHUB_REPO", "makespace.org"),
+		envOr("GITHUB_OWNER", "Makespace"),
+		envOr("GITHUB_REPO", "makespace-site"),
 		envOr("GITHUB_BASE_BRANCH", "main"),
 	)
 	if err != nil {

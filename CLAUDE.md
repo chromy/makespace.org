@@ -287,6 +287,11 @@ that no existing page follows — real makes carry only `title`, `date`, `draft`
   `height` attributes are computed from the resized resource; hardcoding a square squashes it. Note
   Hugo's `getresource` cache never expires, so a change in the branding repo is only picked up once
   that cache is dropped; `static/logo.webp` is now unreferenced but still published at `/logo.webp`.
+- **Each section links to the form that adds to it.** `content/<section>/_index.md` carries
+  `params.submitPage`, and `section.html` renders it as a link — `/photos/` offers "Add photos",
+  `/makes/` offers "Add a make". The mapping lives with the content rather than in a table in the
+  template, and the link's wording is the form page's own title, so it cannot drift from what the
+  nav calls it.
 - **Every page carries its provenance**, from `_partials/pageinfo.html` in `baseof.html`: publication
   date, last edited date, the subject and short hash of the last commit that touched it, and an
   "Edit this page" link to GitHub. All of it comes from `enableGitInfo`, which has three

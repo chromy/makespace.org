@@ -1,4 +1,4 @@
-module github.com/chromy/makespace.org
+module github.com/Makespace/makespace-site
 
 go 1.26
 

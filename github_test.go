@@ -81,7 +81,7 @@ func (f *fakeGitHub) handler() http.Handler {
 			})
 		case strings.HasSuffix(r.URL.Path, "/pulls"):
 			json.NewEncoder(w).Encode(map[string]any{
-				"html_url": "https://github.com/chromy/makespace.org/pull/7",
+				"html_url": "https://github.com/Makespace/makespace-site/pull/7",
 			})
 		default:
 			json.NewEncoder(w).Encode(map[string]any{"ok": true})
@@ -129,7 +129,7 @@ func testApp(t *testing.T, fake *fakeGitHub) (*githubApp, *httptest.Server) {
 	srv := httptest.NewServer(fake.handler())
 	t.Cleanup(srv.Close)
 
-	app, err := newGitHubApp("Iv23liQpEXAMPLE", testKeyPEM(t), "chromy", "makespace.org", "main")
+	app, err := newGitHubApp("Iv23liQpEXAMPLE", testKeyPEM(t), "Makespace", "makespace-site", "main")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -146,32 +146,32 @@ func TestOpenPullRequestCallSequence(t *testing.T) {
 	if err != nil {
 		t.Fatalf("OpenPullRequest: %v", err)
 	}
-	if url != "https://github.com/chromy/makespace.org/pull/7" {
+	if url != "https://github.com/Makespace/makespace-site/pull/7" {
 		t.Errorf("url = %q", url)
 	}
 
 	want := []string{
 		// The installation is discovered from the repo rather than configured.
-		"GET /repos/chromy/makespace.org/installation",
+		"GET /repos/Makespace/makespace-site/installation",
 		"POST /app/installations/987654/access_tokens",
-		"GET /repos/chromy/makespace.org/git/ref/heads/main",
-		"POST /repos/chromy/makespace.org/git/refs",
-		"PUT /repos/chromy/makespace.org/contents/content/makes/a-shelf.md",
-		"POST /repos/chromy/makespace.org/pulls",
+		"GET /repos/Makespace/makespace-site/git/ref/heads/main",
+		"POST /repos/Makespace/makespace-site/git/refs",
+		"PUT /repos/Makespace/makespace-site/contents/content/makes/a-shelf.md",
+		"POST /repos/Makespace/makespace-site/pulls",
 	}
 	if strings.Join(fake.calls, "\n") != strings.Join(want, "\n") {
 		t.Errorf("calls =\n%s\nwant\n%s", strings.Join(fake.calls, "\n"), strings.Join(want, "\n"))
 	}
 
-	ref, _ := fake.bodies["POST /repos/chromy/makespace.org/git/refs"]["ref"].(string)
+	ref, _ := fake.bodies["POST /repos/Makespace/makespace-site/git/refs"]["ref"].(string)
 	if !strings.HasPrefix(ref, "refs/heads/submit/makes-a-shelf-") {
 		t.Errorf("branch ref = %q, want a timestamped submit/ branch", ref)
 	}
-	if sha, _ := fake.bodies["POST /repos/chromy/makespace.org/git/refs"]["sha"].(string); sha != "basesha123" {
+	if sha, _ := fake.bodies["POST /repos/Makespace/makespace-site/git/refs"]["sha"].(string); sha != "basesha123" {
 		t.Errorf("branch sha = %q, want the base sha", sha)
 	}
 
-	commit := fake.bodies["PUT /repos/chromy/makespace.org/contents/content/makes/a-shelf.md"]
+	commit := fake.bodies["PUT /repos/Makespace/makespace-site/contents/content/makes/a-shelf.md"]
 	encoded, _ := commit["content"].(string)
 	decoded, err := base64.StdEncoding.DecodeString(encoded)
 	if err != nil {
@@ -184,7 +184,7 @@ func TestOpenPullRequestCallSequence(t *testing.T) {
 		t.Errorf("commit branch = %q, want the new branch", branch)
 	}
 
-	pr := fake.bodies["POST /repos/chromy/makespace.org/pulls"]
+	pr := fake.bodies["POST /repos/Makespace/makespace-site/pulls"]
 	if base, _ := pr["base"].(string); base != "main" {
 		t.Errorf("pull request base = %q, want main", base)
 	}
@@ -214,7 +214,7 @@ func TestInstallationTokenIsCached(t *testing.T) {
 // A repo the app is not installed on must fail with something that points at
 // the cause rather than at a missing environment variable.
 func TestInstallationLookupFailureIsExplained(t *testing.T) {
-	fake := &fakeGitHub{t: t, failOn: "GET /repos/chromy/makespace.org/installation"}
+	fake := &fakeGitHub{t: t, failOn: "GET /repos/Makespace/makespace-site/installation"}
 	app, _ := testApp(t, fake)
 
 	_, err := app.OpenPullRequest(context.Background(), "content/makes/x.md", "body", "t", "b")
@@ -227,7 +227,7 @@ func TestInstallationLookupFailureIsExplained(t *testing.T) {
 }
 
 func TestOpenPullRequestSurfacesAPIErrors(t *testing.T) {
-	fake := &fakeGitHub{t: t, failOn: "POST /repos/chromy/makespace.org/git/refs"}
+	fake := &fakeGitHub{t: t, failOn: "POST /repos/Makespace/makespace-site/git/refs"}
 	app, _ := testApp(t, fake)
 
 	_, err := app.OpenPullRequest(context.Background(), "content/makes/x.md", "body", "t", "b")

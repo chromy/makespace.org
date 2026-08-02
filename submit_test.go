@@ -46,7 +46,7 @@ func (f *fakePRs) OpenPullRequest(_ context.Context, path, content, title, body 
 		return "", f.err
 	}
 	f.path, f.content, f.title, f.body = path, content, title, body
-	return "https://github.com/chromy/makespace.org/pull/7", nil
+	return "https://github.com/Makespace/makespace-site/pull/7", nil
 }
 
 const testCodeword = "opensesame"
@@ -118,7 +118,7 @@ func TestSubmitOpensPullRequest(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
 		t.Fatalf("decoding response: %v", err)
 	}
-	if got.URL != "https://github.com/chromy/makespace.org/pull/7" {
+	if got.URL != "https://github.com/Makespace/makespace-site/pull/7" {
 		t.Errorf("URL = %q, want the pull request", got.URL)
 	}
 
