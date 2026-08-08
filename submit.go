@@ -32,14 +32,16 @@ const (
 //
 // These cover the post — the words and photos on the page — not the object the
 // member made.
+// Keys are SPDX identifiers, spelled and cased as SPDX spells them, since that
+// is what goes into front matter.
 var licences = map[string]bool{
-	"cc-by-sa-4.0":    true,
-	"cc-by-4.0":       true,
-	"cc-by-nc-sa-4.0": true,
-	"cc-by-nc-4.0":    true,
-	"cc-by-nd-4.0":    true,
-	"cc-by-nc-nd-4.0": true,
-	"cc0-1.0":         true,
+	"CC-BY-4.0":       true,
+	"CC-BY-SA-4.0":    true,
+	"CC-BY-NC-SA-4.0": true,
+	"CC-BY-NC-4.0":    true,
+	"CC-BY-ND-4.0":    true,
+	"CC-BY-NC-ND-4.0": true,
+	"CC0-1.0":         true,
 }
 
 // submitHandler takes a filled-in form and turns it into a pull request: the

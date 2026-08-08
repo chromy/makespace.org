@@ -122,6 +122,55 @@ func TestUploadFilesRejectsRubbish(t *testing.T) {
 	}
 }
 
+// The licence badges are SVGs stored at keys the templates name, so this path
+// must not touch the bytes or invent a key.
+func TestUploadAssetStoresVerbatim(t *testing.T) {
+	svg := []byte(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 42"></svg>`)
+	up := newFakeUploader()
+	var out bytes.Buffer
+
+	if err := uploadAsset(context.Background(), up, testBucketURL,
+		"licenses/by.svg", writeTemp(t, "by.svg", svg), &out); err != nil {
+		t.Fatalf("uploadAsset: %v", err)
+	}
+
+	stored, ok := up.uploaded["licenses/by.svg"]
+	if !ok {
+		t.Fatalf("stored %v, want the key it was given", keysOf(up))
+	}
+	if !bytes.Equal(stored, svg) {
+		t.Error("the bytes were changed on the way in")
+	}
+	if got := up.types["licenses/by.svg"]; got != "image/svg+xml" {
+		t.Errorf("content type = %q, want image/svg+xml", got)
+	}
+	if !strings.Contains(out.String(), testBucketURL+"licenses/by.svg") {
+		t.Errorf("output does not show the public URL:\n%s", out.String())
+	}
+}
+
+func TestUploadAssetRejectsRubbish(t *testing.T) {
+	up := newFakeUploader()
+	var out bytes.Buffer
+	file := writeTemp(t, "by.svg", []byte("<svg/>"))
+
+	for _, tc := range []struct{ name, key, path string }{
+		{"no key", "", file},
+		{"key with no extension", "licenses/by", file},
+		{"missing file", "licenses/by.svg", "/nowhere/by.svg"},
+		{"empty file", "licenses/by.svg", writeTemp(t, "empty.svg", nil)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if err := uploadAsset(context.Background(), up, testBucketURL, tc.key, tc.path, &out); err == nil {
+				t.Error("uploadAsset succeeded, want an error")
+			}
+		})
+	}
+	if len(up.uploaded) != 0 {
+		t.Errorf("stored %v despite every case being invalid", keysOf(up))
+	}
+}
+
 func keysOf(up *fakeUploader) []string {
 	var keys []string
 	for k := range up.uploaded {

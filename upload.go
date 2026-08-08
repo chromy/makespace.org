@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"mime"
 	"os"
 	"path/filepath"
 	"strings"
@@ -57,5 +58,37 @@ func uploadFiles(ctx context.Context, up Uploader, baseURL, slug string, paths [
 	for _, key := range keys {
 		fmt.Fprintf(out, "        - %s\n", yamlString(key))
 	}
+	return nil
+}
+
+// uploadAsset puts one file in the bucket byte for byte, under a key chosen by
+// hand. This is for the site's own furniture — the licence badges — rather than
+// for members' photos, which is why it skips normalisePhoto entirely: the
+// badges are SVGs, and re-encoding one as a JPEG would be nonsense.
+//
+// Nothing here is content-addressed, so a key can be overwritten. That is the
+// point for a badge, which should keep the same URL when Creative Commons
+// redraws it, but it does mean these keys are not safe to cache forever the way
+// a photo's is.
+func uploadAsset(ctx context.Context, up Uploader, baseURL, key, path string, out io.Writer) error {
+	if strings.TrimSpace(key) == "" {
+		return fmt.Errorf("give the key to store it under with -key")
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	if len(data) == 0 {
+		return fmt.Errorf("%s is empty", path)
+	}
+
+	contentType := mime.TypeByExtension(filepath.Ext(key))
+	if contentType == "" {
+		return fmt.Errorf("cannot tell the content type from the key %q — give it a file extension", key)
+	}
+	if err := up.Upload(ctx, key, contentType, data); err != nil {
+		return err
+	}
+	fmt.Fprintf(out, "%-16s -> %s\n", filepath.Base(path), strings.TrimSuffix(baseURL, "/")+"/"+key)
 	return nil
 }

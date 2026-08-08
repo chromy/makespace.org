@@ -176,11 +176,37 @@ the words and photos on the page — a physical object is not what a copyright l
 the form says so, because that is exactly what people get wrong. It lands in front matter as
 `params.license: 'cc-by-sa-4.0'` and renders through `_partials/license.html`.
 
-That list lives twice and has to stay in step: `data/licenses.toml` drives the form's options and
-the rendered link; `licences` in `submit.go` is the allowlist the server validates against, because
-the data file is not in the server image and an unvalidated id would be written straight into front
-matter. `TestOfferedLicencesAreAccepted` reads the TOML and fails if the two drift. Adding a licence
-means editing both. Pages written before the form existed carry no licence and render nothing, as
+Ids are **SPDX identifiers**, cased as SPDX cases them, so a post says `license: 'CC-BY-4.0'` rather
+than a spelling of our own that tools would have to be taught. The default is CC BY 4.0, marked
+`default = true` in the data file rather than being "whichever is listed first", so reordering the
+list for presentation cannot quietly change what most posts are licensed under.
+
+Each entry also names a `badge`: the key of Creative Commons' own button in the bucket. The badge
+goes through `_partials/photo.html` like any other image, so it inherits the same rules — a badge
+that has not been uploaded warns and is skipped, an unreachable bucket fails the build — and it is
+served from this site rather than creativecommons.org, so nobody is tracked for reading a page.
+Being SVGs they are published as-is; 120×42 is their native size.
+
+Putting them there is a one-off, and needs Tigris write credentials:
+
+```sh
+base=https://creativecommons.org/wp-content/themes/vocabulary-theme/vocabulary/svg/cc/license_badges/big
+for pair in by:by by_sa:by-sa by_nc_sa:by-nc-sa by_nc:by-nc by_nd:by-nd by_nc_nd:by-nc-nd cc_zero:cc-zero; do
+  curl -fsSo "/tmp/${pair##*:}.svg" "$base/${pair%%:*}.svg"
+  go run . -upload -key "licenses/${pair##*:}.svg" "/tmp/${pair##*:}.svg"
+done
+```
+
+`-key` stores one file byte for byte under a key you choose, skipping `normalisePhoto` — re-encoding
+an SVG as a JPEG would be nonsense. It is for the site's own furniture only; unlike a photo's key it
+is not content-addressed, so it can be overwritten when CC redraw a badge, and it is not safe to
+cache forever.
+
+The licence list lives twice and has to stay in step: `data/licenses.toml` drives the form's
+options, the rendered link and the badge; `licences` in `submit.go` is the allowlist the server
+validates against, because the data file is not in the server image and an unvalidated id would be
+written straight into front matter. `TestOfferedLicencesAreAccepted` reads the TOML and fails if the
+two drift. Adding a licence means editing both. Pages written before the form existed carry no licence and render nothing, as
 does an id the data file does not know.
 
 **The gate is a shared codeword, not authentication.** The form carries a `codeword` field, compared
