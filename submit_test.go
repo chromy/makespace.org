@@ -102,7 +102,7 @@ func TestSubmitOpensPullRequest(t *testing.T) {
 		map[string]string{
 			"codeword": testCodeword,
 			"name":     "Ada L",
-			"license":  "cc-by-sa-4.0",
+			"license":  "CC-BY-SA-4.0",
 			"title":    "A Very Nice Shelf",
 			"body":     "Made from offcuts.",
 		},
@@ -148,7 +148,7 @@ func TestSubmitOpensPullRequest(t *testing.T) {
 		"date: '2026-08-01T12:00:00Z'",
 		"draft: false",
 		"- 'Ada L'",
-		"    license: 'cc-by-sa-4.0'",
+		"    license: 'CC-BY-SA-4.0'",
 		"        - '" + key + "'",
 		"Made from offcuts.",
 	} {
@@ -192,7 +192,7 @@ func TestSubmitValidation(t *testing.T) {
 	// Every case carries a valid codeword, so what is being tested is the field
 	// validation rather than the gate in front of it.
 	fields := func(extra map[string]string) map[string]string {
-		f := map[string]string{"codeword": testCodeword, "name": "Ada L", "title": "Fine", "license": "cc-by-sa-4.0"}
+		f := map[string]string{"codeword": testCodeword, "name": "Ada L", "title": "Fine", "license": "CC-BY-SA-4.0"}
 		for k, v := range extra {
 			f[k] = v
 		}
@@ -205,7 +205,7 @@ func TestSubmitValidation(t *testing.T) {
 	}{
 		{"no licence", fields(map[string]string{"license": ""}), map[string][]byte{"a.jpg": photo}},
 		{"licence not on the list", fields(map[string]string{"license": "wtfpl-2.0"}), map[string][]byte{"a.jpg": photo}},
-		{"licence with markup", fields(map[string]string{"license": "cc-by-4.0'\ninjected: yes"}), map[string][]byte{"a.jpg": photo}},
+		{"licence with markup", fields(map[string]string{"license": "CC-BY-4.0'\ninjected: yes"}), map[string][]byte{"a.jpg": photo}},
 		{"no name", fields(map[string]string{"name": ""}), map[string][]byte{"a.jpg": photo}},
 		{"name too long", fields(map[string]string{"name": strings.Repeat("n", maxNameRunes+1)}), map[string][]byte{"a.jpg": photo}},
 		{"no title", fields(map[string]string{"title": ""}), map[string][]byte{"a.jpg": photo}},
@@ -239,7 +239,7 @@ func TestSubmitStopsWhenUploadFails(t *testing.T) {
 
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, formRequest(t,
-		map[string]string{"codeword": testCodeword, "name": "Ada L", "title": "Shelf", "license": "cc-by-sa-4.0"},
+		map[string]string{"codeword": testCodeword, "name": "Ada L", "title": "Shelf", "license": "CC-BY-SA-4.0"},
 		map[string][]byte{"a.jpg": samplePhoto(t)}))
 
 	if rec.Code != http.StatusBadGateway {
@@ -262,7 +262,7 @@ func TestSubmitPhotosOpensPullRequest(t *testing.T) {
 		map[string]string{
 			"codeword": testCodeword,
 			"name":     "Ada L",
-			"license":  "cc-by-4.0",
+			"license":  "CC-BY-4.0",
 			"body":     "A busy Tuesday.",
 		},
 		map[string][]byte{"one.jpg": samplePhoto(t)})
@@ -288,7 +288,7 @@ func TestSubmitPhotosOpensPullRequest(t *testing.T) {
 		"title: '1 August 2026'",
 		"date: '2026-08-01T12:00:00Z'",
 		"- 'Ada L'",
-		"    license: 'cc-by-4.0'",
+		"    license: 'CC-BY-4.0'",
 		"        - '" + key + "'",
 		"A busy Tuesday.",
 	} {
@@ -307,7 +307,7 @@ func TestSubmitWriteup(t *testing.T) {
 	base := map[string]string{
 		"codeword": testCodeword,
 		"name":     "Ada L",
-		"license":  "cc-by-sa-4.0",
+		"license":  "CC-BY-SA-4.0",
 		"title":    "Bike Maintenance Workshop",
 		"body":     "Eight people came. We fixed six bikes and broke one.",
 	}
@@ -336,7 +336,7 @@ func TestSubmitWriteup(t *testing.T) {
 		for _, want := range []string{
 			"title: 'Bike Maintenance Workshop'",
 			"slug: 'bike-maintenance-workshop'",
-			"    license: 'cc-by-sa-4.0'",
+			"    license: 'CC-BY-SA-4.0'",
 			"We fixed six bikes",
 		} {
 			if !strings.Contains(prs.content, want) {
@@ -403,7 +403,7 @@ func TestSubmitSlugIsOptional(t *testing.T) {
 	base := map[string]string{
 		"codeword": testCodeword,
 		"name":     "Ada L",
-		"license":  "cc-by-4.0",
+		"license":  "CC-BY-4.0",
 		"title":    "A Very Nice Shelf",
 	}
 	withSlug := map[string]string{}
@@ -438,7 +438,7 @@ func TestSubmitSlugIsOptional(t *testing.T) {
 	h.Photos(rec, formRequest(t, map[string]string{
 		"codeword": testCodeword,
 		"name":     "Ada L",
-		"license":  "cc-by-4.0",
+		"license":  "CC-BY-4.0",
 		"slug":     "tuesday-tidy-up",
 	}, photos))
 	if rec.Code != http.StatusOK {
@@ -460,7 +460,7 @@ func TestTitleIsOnlyRequiredForMakes(t *testing.T) {
 	fields := map[string]string{
 		"codeword": testCodeword,
 		"name":     "Ada L",
-		"license":  "cc-by-4.0",
+		"license":  "CC-BY-4.0",
 	}
 	photos := map[string][]byte{"one.jpg": samplePhoto(t)}
 
@@ -501,7 +501,7 @@ func TestSlugify(t *testing.T) {
 
 func TestYAMLStringEscapes(t *testing.T) {
 	// A title containing a quote must not break out of the front matter.
-	got := buildMarkdown("Ada's \"Best\" Shelf", "adas-best-shelf", "", "Ada L", "cc-by-4.0", []string{"a.jpg"}, time.Unix(0, 0).UTC())
+	got := buildMarkdown("Ada's \"Best\" Shelf", "adas-best-shelf", "", "Ada L", "CC-BY-4.0", []string{"a.jpg"}, time.Unix(0, 0).UTC())
 	if !strings.Contains(got, "title: 'Ada''s \"Best\" Shelf'") {
 		t.Errorf("quote not escaped:\n%s", got)
 	}

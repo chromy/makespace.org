@@ -11,6 +11,7 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"fmt"
 	"io/fs"
 	"log"
 	"net/http"
@@ -33,10 +34,11 @@ func main() {
 	dir := flag.String("dir", envOr("SITE_DIR", "public"), "directory holding the rendered site")
 	upload := flag.Bool("upload", false, "upload the named image files to the bucket and print their keys, instead of serving")
 	uploadSlug := flag.String("slug", "", "with -upload: the slug of the post the photos belong to")
+	uploadKey := flag.String("key", "", "with -upload: store one file verbatim under this key, instead of treating it as a photo")
 	flag.Parse()
 
 	if *upload {
-		if err := runUpload(context.Background(), *uploadSlug, flag.Args()); err != nil {
+		if err := runUpload(context.Background(), *uploadSlug, *uploadKey, flag.Args()); err != nil {
 			log.Fatalf("upload: %v", err)
 		}
 		return
@@ -143,7 +145,7 @@ func newSubmitHandler(ctx context.Context) (*submitHandler, error) {
 
 // runUpload builds just enough of the server to put files in the bucket: no
 // GitHub App, no codeword, just the bucket credentials.
-func runUpload(ctx context.Context, slug string, paths []string) error {
+func runUpload(ctx context.Context, slug, key string, paths []string) error {
 	bucket := envOr("BUCKET_NAME", "makespace-site-content")
 	endpoint := envOr("AWS_ENDPOINT_URL_S3", "https://fly.storage.tigris.dev")
 
@@ -154,6 +156,14 @@ func runUpload(ctx context.Context, slug string, paths []string) error {
 	// Where the site will read them back from, which is the bucket's own
 	// virtual-host name rather than the endpoint.
 	baseURL := strings.Replace(endpoint, "https://", "https://"+bucket+".", 1)
+	// -key means "this exact file at this exact key", for the site's own
+	// furniture; without it the files are treated as members' photos.
+	if key != "" {
+		if len(paths) != 1 {
+			return fmt.Errorf("-key takes exactly one file, got %d", len(paths))
+		}
+		return uploadAsset(ctx, uploader, baseURL, key, paths[0], os.Stdout)
+	}
 	return uploadFiles(ctx, uploader, baseURL, slug, paths, os.Stdout)
 }
 

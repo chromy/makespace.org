@@ -3,48 +3,68 @@
 # These cover the post — the words and photos on the page — and not the thing
 # the member made. A physical object is not what copyright licences apply to.
 #
+# `id` is the SPDX identifier, exactly as SPDX spells it, case included. It is
+# what lands in front matter, so a post says `license: 'CC-BY-4.0'` rather than
+# some spelling of our own that tools would have to be taught.
+#
+# Exactly one entry carries `default = true`, and the forms mark that option
+# selected. It is a flag rather than "whichever is first" so that reordering
+# this list for presentation cannot quietly change what most posts end up
+# licensed under.
+#
+# `badge` is the key of the licence's button in the bucket — the SVGs Creative
+# Commons publishes, uploaded with `-upload -key`. See CLAUDE.md.
+#
 # The ids are duplicated in submit.go, which validates against them: this file
 # is not in the server image, and the server must not write an arbitrary string
 # into front matter. Adding a licence means adding it in both places.
 
 [[license]]
-  id = 'cc-by-sa-4.0'
-  name = 'CC BY-SA 4.0'
-  url = 'https://creativecommons.org/licenses/by-sa/4.0/'
-  summary = 'Share and adapt, with credit, under the same licence.'
-
-[[license]]
-  id = 'cc-by-4.0'
+  id = 'CC-BY-4.0'
   name = 'CC BY 4.0'
   url = 'https://creativecommons.org/licenses/by/4.0/'
   summary = 'Share and adapt, with credit.'
+  badge = 'licenses/by.svg'
+  default = true
 
 [[license]]
-  id = 'cc-by-nc-sa-4.0'
+  id = 'CC-BY-SA-4.0'
+  name = 'CC BY-SA 4.0'
+  url = 'https://creativecommons.org/licenses/by-sa/4.0/'
+  summary = 'Share and adapt, with credit, under the same licence.'
+  badge = 'licenses/by-sa.svg'
+
+[[license]]
+  id = 'CC-BY-NC-SA-4.0'
   name = 'CC BY-NC-SA 4.0'
   url = 'https://creativecommons.org/licenses/by-nc-sa/4.0/'
   summary = 'Share and adapt for non-commercial use, with credit, under the same licence.'
+  badge = 'licenses/by-nc-sa.svg'
 
 [[license]]
-  id = 'cc-by-nc-4.0'
+  id = 'CC-BY-NC-4.0'
   name = 'CC BY-NC 4.0'
   url = 'https://creativecommons.org/licenses/by-nc/4.0/'
   summary = 'Share and adapt for non-commercial use, with credit.'
+  badge = 'licenses/by-nc.svg'
 
 [[license]]
-  id = 'cc-by-nd-4.0'
+  id = 'CC-BY-ND-4.0'
   name = 'CC BY-ND 4.0'
   url = 'https://creativecommons.org/licenses/by-nd/4.0/'
   summary = 'Share as-is, with credit; no adaptations.'
+  badge = 'licenses/by-nd.svg'
 
 [[license]]
-  id = 'cc-by-nc-nd-4.0'
+  id = 'CC-BY-NC-ND-4.0'
   name = 'CC BY-NC-ND 4.0'
   url = 'https://creativecommons.org/licenses/by-nc-nd/4.0/'
   summary = 'Share as-is for non-commercial use, with credit; no adaptations.'
+  badge = 'licenses/by-nc-nd.svg'
 
 [[license]]
-  id = 'cc0-1.0'
+  id = 'CC0-1.0'
   name = 'CC0 1.0'
   url = 'https://creativecommons.org/publicdomain/zero/1.0/'
   summary = 'No rights reserved: anyone may use it for anything.'
+  badge = 'licenses/cc-zero.svg'

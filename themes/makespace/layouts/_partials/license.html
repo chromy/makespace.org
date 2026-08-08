@@ -5,16 +5,32 @@
 
   @context {page} . The page whose params.license to render.
 
-  The id is looked up in data/licenses.toml rather than turned into a URL by
-  string surgery, so an id that is not offered renders nothing instead of
-  linking somewhere that does not exist. Pages written before the submission
-  form existed have no licence, and say nothing.
+  The id is the SPDX identifier, looked up in data/licenses.toml rather than
+  turned into a URL by string surgery, so an id that is not offered renders
+  nothing instead of linking somewhere that does not exist. Pages written before
+  the submission form existed have no licence, and say nothing.
 */ -}}
 {{- with .Params.license }}
   {{- $id := . }}
   {{- range where hugo.Data.licenses.license "id" $id }}
-    <p class="license">The words and photos on this page are licensed
-      <a rel="license external" href="{{ .url }}">{{ .name }}</a>. That covers the post, not the
-      thing it describes.</p>
+    {{- $licence := . }}
+    <p class="license">
+      {{- /* Creative Commons' own button. It comes from the bucket like every
+             other image, through photo.html, so it inherits the same rules: a
+             badge that has not been uploaded yet warns and is skipped, and a
+             bucket that is unreachable fails the build. Being an SVG it is
+             published as-is rather than resized — 120x42 is its native size,
+             and there is nothing to resize anyway. */ -}}
+      {{- with $licence.badge }}
+        {{- with partial "photo.html" . }}
+          <a rel="license external" href="{{ $licence.url }}"><img class="license-badge"
+              src="{{ .RelPermalink }}"
+              width="120" height="42" alt="{{ $licence.name }}" loading="lazy"></a>
+        {{- end }}
+      {{- end }}
+      The words and photos on this page are licensed
+      <a rel="license external" href="{{ $licence.url }}">{{ $licence.name }}</a>. That covers the
+      post, not the thing it describes.
+    </p>
   {{- end }}
 {{- end }}

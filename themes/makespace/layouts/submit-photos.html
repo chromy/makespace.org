@@ -24,7 +24,7 @@
     <label for="license">Licence for this post</label>
     <select id="license" name="license" required>
       {{- range hugo.Data.licenses.license }}
-        <option value="{{ .id }}">{{ .name }} — {{ .summary }}</option>
+        <option value="{{ .id }}"{{ if .default }} selected{{ end }}>{{ .name }} — {{ .summary }}</option>
       {{- end }}
     </select>
     <p class="field-help">This covers the photos and notes on the page, so others know what they

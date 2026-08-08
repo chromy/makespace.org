@@ -31,7 +31,7 @@
   --color-foreground: #444;
   --color-emphasis: #222;
   --color-background: #fffefe;
-  --color-accent: rgb(232, 110, 44);
+  --color-accent: #444;
 
   /* Type. Whatever the reader's system already has, in rough order of
      preference per platform, ending in the generic. No webfont, so nothing to
@@ -253,4 +253,9 @@ form.submit-make button {
   margin-top: calc(var(--space) * 1.5);
   font: inherit;
   align-self: flex-start;
+}
+
+.license-badge {
+  display: block;
+  margin-bottom: 0.5rem;
 }
