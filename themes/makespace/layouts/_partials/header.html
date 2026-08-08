@@ -1,4 +1,8 @@
 {{- /*
+  The masthead: the logo, and nothing else. The navigation is a sibling of
+  `main` in `baseof.html` rather than a child of this, because it belongs beside
+  the page rather than in the band across the top.
+
   The logo is fetched from github.com/Makespace/Branding rather than copied into
   this repository, so there is one canonical copy of it.
 
@@ -20,4 +24,3 @@
   {{- end }}
 {{- end }}
 <a href="{{ site.Home.RelPermalink }}" rel="home" aria-current="page"><img src="{{ $logo.RelPermalink }}" width="{{ math.Div $logo.Width 2 }}" height="{{ math.Div $logo.Height 2 }}" alt="Makespace" decoding="async"></a>
-{{ partial "menu.html" . }}

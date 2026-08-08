@@ -4,15 +4,26 @@
   {{ partial "head.html" . }}
 </head>
 <body>
+  {{- /* Three full-width bands — masthead, page, footer — each wrapping its
+         contents in a `width` element. That is what puts the logo, the text and
+         the footer on the same left edge while the colour behind them still
+         runs the whole way across. */ -}}
   <header>
-    {{ partial "header.html" . }}
+    <div class="width">
+      {{ partial "header.html" . }}
+    </div>
   </header>
-  <main>
-    {{ block "main" . }}{{ end }}
-  </main>
+  <div class="width columns">
+    {{ partial "menu.html" . }}
+    <main>
+      {{ block "main" . }}{{ end }}
+    </main>
+  </div>
   <footer>
-    {{ partial "pageinfo.html" . }}
-    {{ partial "footer.html" . }}
+    <div class="width">
+      {{ partial "pageinfo.html" . }}
+      {{ partial "footer.html" . }}
+    </div>
   </footer>
 </body>
 </html>

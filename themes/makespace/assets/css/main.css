@@ -32,6 +32,11 @@
   --color-emphasis: #222;
   --color-background: #fffefe;
   --color-accent: rgb(232, 110, 44);
+  /* Two supporting colours the bands need: what sits on the accent, and the
+     quieter ground the footer stands on so it reads as a different surface from
+     the page without a line drawn between them. */
+  --color-on-accent: #fff;
+  --color-sunk: #f3f2f1;
 
   /* Type. Whatever the reader's system already has, in rough order of
      preference per platform, ending in the generic. No webfont, so nothing to
@@ -47,6 +52,11 @@
   --space: 1rem;
   --sidebar: auto;
   --measure: 42rem;
+
+  /* How wide the centred column is allowed to get. Everything the reader sees
+     lines up inside it — masthead, navigation, page, footer — while the colour
+     behind the masthead and footer still runs the full width of the window. */
+  --width: 72rem;
 
   /* The width at which the layout becomes two columns. Note this cannot be a
      variable in the media query itself — CSS does not allow that — so it is
@@ -111,14 +121,49 @@ img {
 
 /* Layout ------------------------------------------------------------------ */
 
+/* The centred column. The masthead, the page and the footer each wrap their
+   contents in one of these, which is what makes the logo, the first word of the
+   text and the footer share a left edge at every window width — while the
+   colour behind the masthead and footer still runs edge to edge. */
+.width {
+  max-width: var(--width);
+  margin-inline: auto;
+  padding-inline: var(--space);
+}
+
 header {
-  grid-area: header;
-  padding: var(--space);
+  background-color: var(--color-accent);
+  color: var(--color-on-accent);
+  padding-block: calc(var(--space) / 2);
+}
+
+header img {
+  display: block;
+  height: calc(var(--space) * 3);
+  width: auto;
+  /* The logo is orange and green on transparency, so on an orange band its
+     orange half would simply disappear. This flattens it to a white silhouette
+     — the mark and wordmark keep their shape, and only in the masthead: the
+     logo is still itself everywhere else it is used. */
+  filter: brightness(0) invert(1);
+}
+
+/* Navigation beside the page above the breakpoint, stacked above it below —
+   which is the right reading order either way, so nothing needs reordering. */
+.columns {
+  display: grid;
+  gap: calc(var(--space) * 2);
+  padding-block: calc(var(--space) * 2);
+}
+
+/* A grid item refuses to shrink below its content by default, which on a narrow
+   screen is enough for one wide thing — the form, a photo grid — to widen the
+   column past the window and set the whole page scrolling sideways. */
+.columns > * {
+  min-width: 0;
 }
 
 main {
-  grid-area: main;
-  padding: calc(var(--space) * 2) var(--space);
   /* Holds the footer off the first screen, however short the page is: a
      visitor should meet the content, not the footer. vh rather than dvh or svh
      deliberately — those shrink as mobile browser chrome expands, which would
@@ -127,19 +172,21 @@ main {
 }
 
 footer {
-  grid-area: footer;
-  padding: calc(var(--space) * 2);
+  /* The accent again, as a rule the width of the window: it closes the page the
+     way the masthead opens it. */
+  border-top: calc(var(--space) / 2) solid var(--color-accent);
+  background-color: var(--color-sunk);
+  padding-block: calc(var(--space) * 2);
 }
 
-/* Below this width everything stacks in source order, which is already the
-   right reading order. Keep it that way. */
+/* Note this cannot be `var(--breakpoint)` — CSS does not allow a variable in a
+   media query — so the value is repeated from :root and the two must change
+   together. */
 @media (min-width: 768px) {
-  body {
-    display: grid;
-    grid-template-columns: var(--sidebar) 2fr;
-    grid-template-areas:
-      'header main'
-      'footer footer';
+  .columns {
+    /* minmax(0, …) rather than a bare 2fr: without it a wide child, the quilt
+       for instance, can push the column past its share instead of fitting. */
+    grid-template-columns: var(--sidebar) minmax(0, 2fr);
   }
 }
 
@@ -165,17 +212,21 @@ nav summary {
 
 /* Photos ------------------------------------------------------------------ */
 
-/* The home page quilt: tiles butted together with no gaps, six across. */
+/* The home page quilt: tiles butted together with no gaps, six across. The
+   columns are fractions rather than the tiles' own widths, because the page is
+   now a fixed column: at their natural size six tiles are wider than it, and
+   would hang off the end of it rather than shrink to fit. */
 .quilt {
   display: grid;
   grid-auto-rows: auto;
-  grid-template-columns: repeat(6, auto);
+  grid-template-columns: repeat(6, 1fr);
   justify-content: flex-start;
   gap: 0;
 }
 
 .quilt img {
   display: block;
+  width: 100%;
   height: 100%;
 }
 

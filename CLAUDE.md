@@ -313,15 +313,27 @@ that no existing page follows — real makes carry only `title`, `date`, `draft`
   `<noscript>` style block. The only current user is the Web Share button in `makes/single.html`.
 - CSS is a single hand-written `themes/makespace/assets/css/main.css`, unfingerprinted in
   development and minified + SRI-fingerprinted in production via `_partials/head/css.html`.
+- **The page is three full-width bands, each wrapping its contents in a `.width` element**: the
+  masthead (the logo, on accent orange), the page itself (navigation beside `main`), and the footer
+  (provenance and site line, on a quiet grey under an accent rule). That split is the whole trick —
+  the band carries the colour edge to edge while the `.width` inside it holds a centred, capped
+  column, so the logo, the first word of the text and the footer all share a left edge. `--width`
+  sets how wide that column may get. The masthead logo is flattened to a white silhouette with
+  `filter: brightness(0) invert(1)`, because the logo is orange and green on transparency and its
+  orange half would otherwise vanish into the band; it stays full colour everywhere else.
 - **The stylesheet is intentionally almost empty**, so that a member who wants to style the site
   properly has room to. It declares variables in `:root` — colours, font stack, `--space`,
-  `--sidebar` — and then only lays out what would be unusable without it: the page grid, the quilt,
+  `--sidebar`, `--width` — and then only lays out what would be unusable without it: the bands and
+  the two columns, the quilt,
   the photo grid on a make, the form. There is no decoration at all: no shadows, rounded corners,
   transitions, hover effects or font-size scale, and browser defaults are left to handle headings,
   code and blockquotes. When adding to it, prefer a new variable to a hardcoded value, and prefer
-  restyling an element to inventing a class — the templates use nine classes in total. Two traps:
-  the two-column breakpoint is repeated as a literal in the `@media` query because CSS cannot use a
-  variable there, so it has to be changed in both places; and the markup carries no `.share-button`
-  class, so the rules that used to style it never applied to anything.
+  restyling an element to inventing a class — the templates use eleven classes in total. Three
+  traps: the two-column breakpoint is repeated as a literal in the `@media` query because CSS cannot
+  use a variable there, so it has to be changed in both places; the markup carries no
+  `.share-button` class, so the rules that used to style it never applied to anything; and the two
+  columns need `min-width: 0`, since a grid item will not shrink below its content and one wide
+  child — the form, a photo grid — would otherwise widen the column past the window and set the
+  whole page scrolling sideways.
 
 `TODO.md` tracks the outstanding work on the site.
