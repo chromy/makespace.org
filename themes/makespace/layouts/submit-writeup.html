@@ -7,11 +7,6 @@
        is required and photos are not. */}}
   <form class="submit-make" method="post" action="/submit/writeup" enctype="multipart/form-data"
         data-dropzone data-max-photos="8" data-max-photo-mb="20">
-    <label for="codeword">Codeword</label>
-    <input id="codeword" name="codeword" type="text" required autocomplete="off"
-           spellcheck="false" autocapitalize="none">
-    <p class="field-help">Ask in the space or on the members' app if you do not have it.</p>
-
     <label for="name">Your name</label>
     <input id="name" name="name" type="text" maxlength="80" required
            placeholder="Ada L">
@@ -44,6 +39,11 @@
     <input id="photos" name="photos" type="file" accept="image/jpeg,image/png" multiple>
     <p class="field-help">Optional, up to 8, 20&nbsp;MB each, JPEG or PNG. Location data is removed
       before anything is published.</p>
+
+    <label for="codeword">Codeword</label>
+    <input id="codeword" name="codeword" type="text" required autocomplete="off"
+           spellcheck="false" autocapitalize="none">
+    <p class="field-help">Ask in the space or on the members' app if you do not have it.</p>
 
     <button type="submit">Send for review</button>
   </form>
