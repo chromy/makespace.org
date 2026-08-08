@@ -214,7 +214,9 @@ ul.byline > li:not(:first-child)::before {
 /* Where a page came from -------------------------------------------------- */
 
 .pageinfo {
-  margin-top: calc(var(--space) * 3);
+  /* Sits in the site footer, whose padding already separates it from the page,
+     so it only sets itself apart from the site's own footer text. */
+  margin-bottom: var(--space);
   font-size: 0.9rem;
 }
 

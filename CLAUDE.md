@@ -294,7 +294,9 @@ that no existing page follows — real makes carry only `title`, `date`, `draft`
   nav calls it.
 - **Every page carries its provenance**, from `_partials/pageinfo.html` in `baseof.html`: publication
   date, last edited date, the subject and short hash of the last commit that touched it, and an
-  "Edit this page" link to GitHub. All of it comes from `enableGitInfo`, which has three
+  "Edit this page" link to GitHub. It renders in the site's `<footer>`, above "Makespace.", rather
+  than at the end of `<main>` — which is why its wrapper is a `<div>` and not a `<footer>`, an
+  element HTML does not allow inside another one. All of it comes from `enableGitInfo`, which has three
   consequences worth knowing. The build needs `.git`, so `.dockerignore` no longer excludes it and
   the `Dockerfile` copies it (plus `git config --global --add safe.directory`, since the repository
   is owned by another user inside the image). CI needs `fetch-depth: 0`, because a shallow clone has

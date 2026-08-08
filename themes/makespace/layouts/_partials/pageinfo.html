@@ -6,6 +6,9 @@
 
   @context {page} . The page to describe.
 
+  It is rendered inside the site's own `<footer>`, so the wrapper here is a
+  plain `<div>`: a `footer` element may not contain another one.
+
   Everything here comes from git, through `enableGitInfo`, so it is blank in two
   cases that are both normal: a page that has never been committed (a draft in
   `hugo server`), and any page Hugo generates rather than reads from a file —
@@ -14,7 +17,7 @@
 */ -}}
 {{- $repo := "https://github.com/Makespace/makespace-site" }}
 {{- if or (not .Date.IsZero) .GitInfo .File }}
-<footer class="pageinfo">
+<div class="pageinfo">
   <dl>
     {{- if not .Date.IsZero }}
     <dt>Published</dt>
@@ -40,5 +43,5 @@
   {{- with .File }}
     <a class="edit-page" href="{{ $repo }}/edit/main/{{ .Path }}">Edit this page</a>
   {{- end }}
-</footer>
+</div>
 {{- end }}
